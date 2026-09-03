@@ -1,0 +1,37 @@
+---
+title: "Week 1 Assignment: Approach"
+author: "Jocelyn Slater"
+format: html
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+```
+
+## Introduction
+
+I will be using [this](https://data.cityofnewyork.us/Environment/2015-Street-Tree-Census-Tree-Data/uvpi-gqnh/about_data) tree data set from the City of New York for my first assignment to explore the relationship between borough and tree health.
+
+```{r}
+# This will read in the first 1000 lines of the data set. 1000 lines is a limit set by the city website
+url <- "https://data.cityofnewyork.us/resource/uvpi-gqnh.csv"
+data_raw <- read_csv(url)
+head(data_raw)
+```
+
+My approach to tidying up the data will be to:
+
+-   Subselect columns that strictly relate to borough and tree health
+
+-   Create new summary column combining different tree health factors. New column with have a boolean value to indicate healthy or unhealthy trees
+
+-   Eliminate rows that are missing key information
+
+I anticipate there being some challenge determining which columns are pertinent to the tree health and which are not.
+
+## Conclusion
+
+-   what to do to extend/verify/update my work
+-   read in all of the data
