@@ -12,7 +12,7 @@ library(readr)
 
 ## Introduction
 
-I will be using [this](https://data.cityofnewyork.us/Environment/2015-Street-Tree-Census-Tree-Data/uvpi-gqnh/about_data) tree data set from the City of New York for my first assignment to explore the relationship between borough and tree health.
+I will be using [this](https://data.cityofnewyork.us/Environment/2015-Street-Tree-Census-Tree-Data/uvpi-gqnh/about_data) tree data set from the City of New York for my first assignment to explore the relationship between borough and tree health. As a New Yorker myself, I am curious to see how location, tree density, and tree health are correlated.
 
 ```{r}
 # This will read in the first 1000 lines of the data set. 1000 lines is a limit set by the city website
