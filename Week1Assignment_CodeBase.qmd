@@ -1,0 +1,75 @@
+---
+title: "Week 1 Assignment: Code Base"
+author: "Jocelyn Slater"
+format: html
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(data.table)
+library(ggplot2)
+```
+
+## Introduction
+
+I will be using [this](https://data.cityofnewyork.us/Environment/2015-Street-Tree-Census-Tree-Data/uvpi-gqnh/about_data) tree data set from the City of New York for my first assignment to explore the relationship between borough and tree health. As a New Yorker myself, I am curious to see how location, tree density, and tree health are correlated.
+
+```{r}
+# This will read in the first 1000 lines of the data set. 1000 lines is a limit set by the city website of how much can be read in this way. Alternatively I could download the whole data set as a .csv and source from github
+url <- "https://data.cityofnewyork.us/resource/uvpi-gqnh.csv"
+data_raw <- read_csv(url, show_col_types = FALSE)
+head(data_raw)
+```
+
+## Data Tidying
+```{r}
+# Subselect columns
+df_sub <- data_raw[, c("tree_id", "tree_dbh", "status", "health", "root_stone", "root_grate", "root_other", "brch_light", "brch_shoe", "brch_other", "borocode", "boroname")]
+
+# Make new root_health column
+df_sub$root_problem <- ifelse(df_sub$root_stone == "Yes" | df_sub$root_grate == "Yes" | df_sub$root_other == "Yes", "yes", "no")
+
+# Make new branch_health column
+df_sub$branch_problem <- ifelse(df_sub$brch_light == "Yes" | df_sub$brch_shoe == "Yes" | df_sub$brch_other == "Yes", "yes", "no")
+
+# Rename columns
+df_sub <- df_sub %>% rename(tree_diameter_in = tree_dbh)
+
+# DO NOT Remove rows with NA values in health column (these correspond to a dead tree/stump and therefore have important values we can't lose for the analysis)
+# df_clean <- drop_na(df_sub, health)
+# Change NA values to "Dead"
+df_clean <- df_sub %>% 
+  mutate(health = replace_na(health, "Dead"))
+```
+
+## Initial Analysis
+```{r}
+ggplot(df_clean, aes(x = boroname, fill = status)) +
+  geom_bar() +
+  scale_fill_brewer(palette = "RdYlGn", direction = -1) +
+  labs(
+    title = "Tree Status by Borough",
+    x = "Borough",
+    y = "Number of Trees",
+    fill = "Status"
+  ) +
+  theme_minimal()
+```
+```{r}
+
+ggplot(df_clean, aes(x = boroname, fill = factor(health, levels = c("Good", "Fair", "Poor", "Dead")))) +
+  geom_bar() +
+  scale_fill_brewer(palette = "RdYlGn", direction = -1) +
+  labs(
+    title = "Overall Tree Health by Borough",
+    x = "Borough",
+    y = "Number of Trees",
+    fill = "Overall Health"
+  ) +
+  theme_minimal()
+```
+
+## Conclusion
+Although more quantitative analysis will have to be done to make firm conclusions, a cursory qualitative analysis shows that Queens and Brooklyn seem to have a higher proportion of trees that are dead or in poor health. Future work should include exploring these relationships per borough area so we can determine the density of trees in each borough. Analysis should also be expanded to include all of the data available. The NYC Open Data has a default limit of providing 1,000 rows. To get around this, the entire .csv data set should be exported, uploaded to github, and sourced from there directly. 
