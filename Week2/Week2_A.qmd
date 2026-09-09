@@ -1,0 +1,71 @@
+---
+title: "Week 2A Assignment: Approach"
+author: "Jocelyn Slater"
+format: html
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(data.table)
+library(ggplot2)
+```
+
+## Task
+Collect simple movie-rating data, store it in a SQL database, and analyze it in R.
+
+## Outline
+
+-   CREATE SQL DATABASE
+
+    -   Survey family on recent movies
+
+        -   Spiderman, The Odyssey, Toy Story 5, Project Hail Mary, Goat, Superman
+
+        -   Do not record missing data as a 0 rating, this will drag down the averages
+
+    -   SQL Tables:
+
+        -   users (id, name)
+
+        -   movies (id, title)
+
+        -   ratings (user id, movie id, rating)
+
+    -   Export SQL database as csv
+
+-   ANALYZE IN R
+
+    -   Read .csv into R as a dataframe
+
+    -   Tidy data
+
+        -   inspection
+
+        -   check for missing values
+
+    -   Simple summaries (means, counts)
+
+        -   Count ratings per user and movie
+
+        -   Compute average ratings
+
+## Anticipated Challenges
+- Apostrophes in last names - My maiden name is O'Brien, I've run into this problem all my life
+  - For now I'll just drop them
+- Never used SQL before, learning curve interfacing with new software
+- 
+
+
+## Submission Requirements
+
+-   Post all code (SQL, R, Quarto) in a **GitHub repository**
+
+-   Submit the GitHub link
+
+-   RPubs publication is *not required*
+
+-   Group work is allowed, but each student must submit individually and list collaborators
+
+## 
