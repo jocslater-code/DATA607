@@ -30,9 +30,9 @@ Analyze the performance of a binary classification model and develop intuition f
   - Null Error Rate
     - Inspect class balance (`count(sex)`).
     - Calculate the null error rate (majority-class error rate).
+    - Recompute predicted class (ifelse(.pred_female \> threshold, 1, 0))
     - Plot the actual class distribution of the target variable using `ggplot2`. 
     - Explain why knowing the null error rate is important when evaluating models.
-    - Recompute predicted class (ifelse(.pred_female \> threshold, 1, 0))
   -   Build Confusion Matrices
       -   Using probability thresholds of 0.2, 0.5, and 0.8, compute:
           -   True Positives (TP)
@@ -40,7 +40,7 @@ Analyze the performance of a binary classification model and develop intuition f
           -   True Negatives (TN)
           -   False Negatives (FN)
       -   Present results as three confusion matrices
-      -   Create logical conditions for TP, FP, TN, FN - count rows for each condition
+ condition
   -   Derive Metrics
       -   For each threshold (0.2, 0.5, and 0.8), calculate:
           -   Accuracy = (TP + TN) / total
