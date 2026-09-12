@@ -10,145 +10,63 @@ library(tidyverse)
 library(readr)
 library(data.table)
 library(ggplot2)
-library(dplyr)
 ```
 
-## Introduction
-This assignment involved the collection of simple movie-rating data, storage of it in a SQL database, and analysis of it in R. Sample set is required to be at least five people and 6 recent movies. I surveyed members of my family and close friends to ensure quick responses required for a tight turn around on the assignment. After collecting the data, I inserted it into a SQL database that was then exported as a .csv. The .csv was imported into R where summary statistics initial analysis was performed. 
+## Task
 
+Collect simple movie-rating data, store it in a SQL database, and analyze it in R.
 
-## SQL Code
-This SQL code is documented here for completeness. R is not directly interfacing with SQL. The SQL code was originally run in pgAdmin 4 to create the database that was then exported as a .csv.
+## Outline
 
-```sql
--- Users Table
-CREATE TABLE users (
-    user_id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL
-);
+-   CREATE SQL DATABASE
 
--- Movies Table
-CREATE TABLE movies (
-    movie_id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL
-);
+    -   Survey family on recent movies
 
--- Rating Table 
-CREATE TABLE ratings (
-    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
-    movie_id INT REFERENCES movies(movie_id) ON DELETE CASCADE,
-    rating NUMERIC(3, 1) NOT NULL,
-    PRIMARY KEY (user_id, movie_id),
-    CONSTRAINT chk_rating CHECK (rating BETWEEN 0.0 AND 5.0)
-);
+        -   Spiderman, The Odyssey, Toy Story 5, Project Hail Mary, Goat, Superman
 
---Insert Users
-INSERT INTO users (name) VALUES 
-('Heidi Smith'),
-('Michael Pento'),
-('Cody Slater'),
-('Jocelyn Slater')
-('Jacob OBrien');
+        -   Do not record missing data as a 0 rating, this will drag down the averages
 
--- Insert Movies
-INSERT INTO movies (title) VALUES 
-('Spiderman Brand New Day'),
-('The Odyssey'),
-('Toy Story 5'),
-('Project Hail Mary'),
-('Superman'), 
-('Goat');
+    -   SQL Tables:
 
--- Insert Ratings
-INSERT INTO ratings (user_id, movie_id, rating) VALUES 
-(1, 3, 4.3), -- Heidi rated Toy Story 5 4.3
-(1, 6, 4.5), -- Heidi rated Goat 4.5
-(2, 3, 4.3), -- Michael rated Toy Story 5 a 4.3
-(2, 6, 4.0), -- Michael rated Goat 4.0
-(2, 4, 4.8), -- Michael rated Project Hail Mary 4.8
-(3, 2, 4.5), -- Cody rated The Odyssey 4.5
-(3, 3, 3.9), -- Cody rated Toy Story 5 3.9
-(3, 4, 3.7), -- Cody rated Project Hail Mary 3.7
-(3, 5, 4.2), -- Cody rated Superman 4.2
-(3, 6, 3.5), -- Cody rated Goat 3.5
-(4, 3, 4.2), -- Jocelyn rated Toy Story 5 4.2
-(4, 4, 4.8), -- Jocelyn rated Project Hail Mary 4.8
-(4, 5, 4.7), -- Jocelyn rated Superman 4.7
-(4, 6, 4.0), -- Jocelyn rated Goat 4.0
-(5, 1, 4.6), -- Jacob rated Spideman 4.6
-(5, 2, 5.0), -- Jacob rated The Odyssey 5.0
-(5, 3, 4.0), -- Jacob rated Toy Story 5 4.0
-(5, 4, 4.3), -- Jacob rated Project Hail Mary 4.3
-(5, 5, 4.5), -- Jacob rated Superman 4.5
-(5, 6, 3.3); -- Jacob rated Goat 3.3
-```
+        -   users (id, name)
 
+        -   movies (id, title)
 
-## Data Import
-Data is imported from SQL database
-```{r}
-rating_raw <- read_csv("https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Week2/movie_rating_data.csv", show_col_types = FALSE)
-glimpse(rating_raw)
-```
-## Data Tidying
-```{r}
-# Make into datafrane that includes NaN ratings for unseen movies
-full_ratings_df <- rating_raw %>%
-  complete(user_name, movie_title, fill = list(rating = NaN))
-```
-   
-## Initial Data Analysis   
+        -   ratings (user id, movie id, rating)
 
-Summary statistics for each movie are calculated below:
-```{r}
-movie_summary <- full_ratings_df %>%
-  filter(!is.na(rating)) %>% # Exclude NaN / missing ratings
-  group_by(movie_title) %>%
-  summarise(
-    ratings_count = n(),
-    avg_rating = mean(rating),
-    sd_rating = sd(rating, na.rm = TRUE) 
-  )
+    -   Export SQL database as csv
 
-print(movie_summary)
-```
+-   ANALYZE IN R
 
-Summary statistics for each user are calculated below:
-```{r}
-user_summary <- full_ratings_df %>%
-  filter(!is.na(rating)) %>%
-  group_by(user_name) %>%
-  summarise(
-    movies_rated = n(),
-    avg_rating = mean(rating), 
-    sd_rating = sd(rating, na.rm = TRUE)   
-  )
+    -   Read .csv into R as a dataframe
 
-print(user_summary)
-```
+    -   Tidy data
 
-# Boxplot of the movie ratings - use the raw dataset without the NaNs
-```{r}
-ggplot(rating_raw, aes(x = movie_title, y = rating, fill = movie_title)) +
-  geom_boxplot(alpha = 0.6, outlier.shape = NA) +
-  geom_jitter(width = 0.15, size = 2.5, alpha = 0.8) +
-  theme_minimal() +
-  labs(
-    title = "Distribution of Movie Ratings",
-    x = "Movie Title",
-    y = "Rating"
-  ) +
-  theme(
-    legend.position = "none",
-    axis.text.x = element_text(angle = 45, hjust = 1) # Tilt
-  )
-```
+        -   inspection
 
-## Findings and Recommendations
-The low tech method of verbal survey resulted in a relatively small data set to analyze, with only 20 non-NaN rows. For the purposes of model development in the future, synthetic data generation may be utilized to expand the data set. 
+        -   check for missing values
 
-For the ratings that were collected, The Odyssey had the highest average rating with a mean of 4.75. The movie with the lowest standard deviation in ratings was Toy Story 5 ($\sigma$ = 0.18) and highest standard deviation was Goat ($\sigma$ = 0.47) making them the least and most divisive movies respectively. 
+    -   Simple summaries (means, counts)
 
-Future work could include linking SQL database generation more directly with the R analysis, synthetic review data generation, and recommender model development.  
+        -   Count ratings per user and movie
 
+        -   Compute average ratings
 
+## Anticipated Challenges
+
+-   Apostrophes in last names - My maiden name is O'Brien, I've run into this problem all my life
+    -   For now I'll just drop them
+-   Never used SQL before, learning curve interfacing with new software
+-   
+
+## Submission Requirements
+
+-   Post all code (SQL, R, Quarto) in a **GitHub repository**
+
+-   Submit the GitHub link
+
+-   RPubs publication is *not required*
+
+-   Group work is allowed, but each student must submit individually and list collaborators
+
+## 
