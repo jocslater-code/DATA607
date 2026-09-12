@@ -14,7 +14,8 @@ library(dplyr)
 ```
 
 ## Introduction
-Collect simple movie-rating data, store it in a SQL database, and analyze it in R.
+This assignment involved the collection of simple movie-rating data, storage of it in a SQL database, and analysis of it in R. Sample set is required to be at least five people and 6 recent movies. I surveyed members of my family and close friends to ensure quick responses required for a tight turn around on the assignment. After collecting the data, I inserted it into a SQL database that was then exported as a .csv. The .csv was imported into R where summary statistics initial analysis was performed. 
+
 
 ## SQL Code
 This SQL code is documented here for completeness. R is not directly interfacing with SQL. The SQL code was originally run in pgAdmin 4 to create the database that was then exported as a .csv.
