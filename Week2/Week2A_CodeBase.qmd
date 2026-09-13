@@ -127,8 +127,8 @@ user_summary <- full_ratings_df %>%
 print(user_summary)
 ```
 
-# Boxplot of the movie ratings - use the raw dataset without the NaNs
 ```{r}
+# Boxplot of movie ratings
 ggplot(rating_raw, aes(x = movie_title, y = rating, fill = movie_title)) +
   geom_boxplot(alpha = 0.6, outlier.shape = NA) +
   geom_jitter(width = 0.15, size = 2.5, alpha = 0.8) +
@@ -144,7 +144,7 @@ ggplot(rating_raw, aes(x = movie_title, y = rating, fill = movie_title)) +
   )
 ```
 
-## Findings and Recommendations
+## Summary and Next Steps
 The low tech method of verbal survey resulted in a relatively small data set to analyze, with only 20 non-NaN rows. For the purposes of model development in the future, synthetic data generation may be utilized to expand the data set. 
 
 For the ratings that were collected, The Odyssey had the highest average rating with a mean of 4.75. The movie with the lowest standard deviation in ratings was Toy Story 5 ($\sigma$ = 0.18) and highest standard deviation was Goat ($\sigma$ = 0.47) making them the least and most divisive movies respectively. 

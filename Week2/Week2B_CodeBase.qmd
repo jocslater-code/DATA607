@@ -1,0 +1,116 @@
+---
+title: "Week 2B Assignment: Approach"
+author: "Jocelyn Slater"
+format: html
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(data.table)
+library(ggplot2)
+library(janitor)
+library(purrr)
+```
+
+## Introduction
+
+This assignment was to analyze the performance of a binary classification model and develop intuition for how probability thresholds affect model evaluation metrics. Performance was assessed though the calculation of a confusion matrix that was used to derive accuracy, precision, recall, and the F1 statistic. The model data in question was provided in a [`penguin_predictions.csv`](https://raw.githubusercontent.com/acatlin/data/refs/heads/master/penguin_predictions.csv) and included the model predicted probability that the subject was female, the predicted class label (1 if `.pred_female > 0.5`, otherwise 0), and the actual class (`.sex`).
+
+## Data Import
+```{r}
+penguin_df <- read_csv("https://raw.githubusercontent.com/acatlin/data/refs/heads/master/penguin_predictions.csv", show_col_types = FALSE)
+penguin_df_clean <- clean_names(penguin_df)
+glimpse(penguin_df_clean)
+```
+```{r}
+# Summary table of penguin count broken down by sex
+penguin_summary <- penguin_df_clean %>%
+  count(sex, name = "count") %>%
+  bind_rows(
+    summarize(penguin_df_clean, sex = "Total", count = n())
+  )
+print(penguin_summary)
+
+# Bar Chart of actual penguin sexes
+ggplot(penguin_summary, aes(x = sex, y = count, fill = sex)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = count), vjust = -0.5, fontface = "bold", size = 4) +
+  scale_fill_manual(values = c(
+    "female" = "#1F77B4", 
+    "male"   = "#FF7F0E", 
+    "Total"  = "#555555"
+  )) +
+  theme_minimal() +
+  labs(
+    title = "Penguin Count by Actual Sex",
+    x = "Sex",
+    y = "Count"
+  ) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14)
+  )
+
+```
+
+
+## Null Error Rate
+The null error rate is the error you would get by always predicting the most common class. In this case, that is male with a null error rate of about 42%. 
+
+```{r}
+# Calculate null metrics
+null_metrics <- penguin_df_clean %>%
+  count(sex) %>%
+  mutate(proportion = n / sum(n)) %>%
+  summarise(
+    majority_class = sex[which.max(n)],
+    majority_prop  = max(proportion),
+    null_error_rate = 1 - max(proportion)
+  )
+print(null_metrics)
+```
+Knowing the null error rate is critical because the model is only valuable if it can perform better than the null error rate, otherwise you would be better off randomly guessing. For example, if your model is correct 90% of the time, but 90% of the penguins are female, the model is not doing anything that guessing "female" every time couldn't do and it has no predictive value. 
+
+## Confusion Matrices. 
+We can recompute the predicted class using various thresholds (0.2,  0.5, 0.8) and calculate the associated confusion matrices.  
+
+```{r}
+# Recompute predicted classes at the thresholds in question and plot in summary confusion matrix
+thresholds <- c(0.2, 0.5, 0.8)
+threshold_summary <- map_dfr(thresholds, function(t) {
+  penguin_df_clean %>%
+    mutate(pred_class_new = ifelse(pred_female > t, 'female', 'male')) %>%
+    summarise(
+      Threshold = t,
+      TP = sum(sex == 'female' & pred_class_new == 'female'),
+      FP = sum(sex == 'male' & pred_class_new == 'female'),
+      TN = sum(sex == 'male' & pred_class_new == 'male'),
+      FN = sum(sex == 'female' & pred_class_new == 'male'),
+      Accuracy  = (TP + TN) / (TP + FP + TN + FN),
+      Precision = TP / (TP + FP),
+      Recall    = TP / (TP + FN),
+      F1_Score  = 2 * (Precision * Recall) / (Precision + Recall)
+    )
+})
+
+print(threshold_summary)
+
+```
+
+## Threshold Analysis
+There is a use case for every threshold value. A low threshold of 0.2 is preferable to define a very sensitive model with high recall. It will define positives even at a lower probability, so it is well suited when false positives are manageable but false negatives are highly dangerous. These are cases like early disease flagging, when a false positive just triggers further non-invasive testing, but a false negative could prove fatal. 
+A higher threshold of 0.8 creates an insensitive model that only categorizes a case as positive when there is a very high probability. This is ideal when false positives could pose a high risk and missing a true positive is not dangerous. The classic example of this is email spam filtering. Categorizing an important email as spam could cause genuine damage to the user and loss of trust in the email system, while allowing a few real spam emails through to the inbox does not pose a great danger.  
+
+## Summary and Next Steps
+I used the statistical metrics of recall, precision, accuracy, and F1-scores to evaluate the performance of the penguin model at three different thresholds 0.2, 0.5, and 0.8. For the lower threshold, the model showed lower accuracy and precision, and marginally higher recall. At the other end, with a threshold of 0.8, precision and accuracy increased while recall decreased. 
+
+Future work could include recalculating with more threshold values to create a sudo-continuous spread of values that could be plotted, to fully visualize this model's threshold trade space. 
+
+
+## LLM Model Citations
+Google DeepMind. (2026). Gemini 3.6 Flash [Large language model].
+https://gemini.google.com. Accessed Sept 12, 2026.
+Transcript available in Github as Assignment2B_LLM_Transcript.pdf
+
