@@ -1,7 +1,7 @@
 ---
-title: "Week 2A Assignment: Approach"
+title: "Week 2A Assignment: Code Base"
 author: "Jocelyn Slater"
-format: html
+format: revealjs
 editor: visual
 ---
 
@@ -14,13 +14,14 @@ library(dplyr)
 ```
 
 ## Introduction
-This assignment involved the collection of simple movie-rating data, storage of it in a SQL database, and analysis of it in R. Sample set is required to be at least five people and 6 recent movies. I surveyed members of my family and close friends to ensure quick responses required for a tight turn around on the assignment. After collecting the data, I inserted it into a SQL database that was then exported as a .csv. The .csv was imported into R where summary statistics initial analysis was performed. 
 
+This assignment involved the collection of simple movie-rating data, storage of it in a SQL database, and analysis of it in R. Sample set is required to be at least five people and 6 recent movies. I surveyed members of my family and close friends to ensure quick responses required for a tight turn around on the assignment. After collecting the data, I inserted it into a SQL database that was then exported as a .csv. The .csv was imported into R where summary statistics initial analysis was performed.
 
 ## SQL Code
+
 This SQL code is documented here for completeness. R is not directly interfacing with SQL. The SQL code was originally run in pgAdmin 4 to create the database that was then exported as a .csv.
 
-```sql
+``` sql
 -- Users Table
 CREATE TABLE users (
     user_id SERIAL PRIMARY KEY,
@@ -83,23 +84,27 @@ INSERT INTO ratings (user_id, movie_id, rating) VALUES
 (5, 6, 3.3); -- Jacob rated Goat 3.3
 ```
 
-
 ## Data Import
+
 Data is imported from SQL database
+
 ```{r}
 rating_raw <- read_csv("https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Week2/movie_rating_data.csv", show_col_types = FALSE)
 glimpse(rating_raw)
 ```
+
 ## Data Tidying
+
 ```{r}
 # Make into datafrane that includes NaN ratings for unseen movies
 full_ratings_df <- rating_raw %>%
   complete(user_name, movie_title, fill = list(rating = NaN))
 ```
-   
-## Initial Data Analysis   
+
+## Initial Data Analysis
 
 Summary statistics for each movie are calculated below:
+
 ```{r}
 movie_summary <- full_ratings_df %>%
   filter(!is.na(rating)) %>% # Exclude NaN / missing ratings
@@ -114,6 +119,7 @@ print(movie_summary)
 ```
 
 Summary statistics for each user are calculated below:
+
 ```{r}
 user_summary <- full_ratings_df %>%
   filter(!is.na(rating)) %>%
@@ -145,10 +151,9 @@ ggplot(rating_raw, aes(x = movie_title, y = rating, fill = movie_title)) +
 ```
 
 ## Summary and Next Steps
-The low tech method of verbal survey resulted in a relatively small data set to analyze, with only 20 non-NaN rows. For the purposes of model development in the future, synthetic data generation may be utilized to expand the data set. 
 
-For the ratings that were collected, The Odyssey had the highest average rating with a mean of 4.75. The movie with the lowest standard deviation in ratings was Toy Story 5 ($\sigma$ = 0.18) and highest standard deviation was Goat ($\sigma$ = 0.47) making them the least and most divisive movies respectively. 
+The low tech method of verbal survey resulted in a relatively small data set to analyze, with only 20 non-NaN rows. For the purposes of model development in the future, synthetic data generation may be utilized to expand the data set.
 
-Future work could include linking SQL database generation more directly with the R analysis, synthetic review data generation, and recommender model development.  
+For the ratings that were collected, The Odyssey had the highest average rating with a mean of 4.75. The movie with the lowest standard deviation in ratings was Toy Story 5 ($\sigma$ = 0.18) and highest standard deviation was Goat ($\sigma$ = 0.47) making them the least and most divisive movies respectively.
 
-
+Future work could include linking SQL database generation more directly with the R analysis, synthetic review data generation, and recommender model development.
