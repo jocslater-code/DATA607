@@ -1,0 +1,49 @@
+---
+title: "Week 3A Assignment: Approach"
+subtitle: "Global Baseline Estimate"
+author: "Jocelyn Slater"
+format: html
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(data.table)
+library(ggplot2)
+```
+
+## Task
+
+Using the information you collected on movie ratings, implement a Global Baseline Estimate recommendation system in R.   The attached spreadsheet provides the implementation algorithm.
+
+Most recommender systems use personalized algorithms like “content management” and “item-item collaborative filtering.” Sometimes non-personalized recommenders are also useful or necessary. One of the best non-personalized recommender system algorithms is the “Global Baseline Estimate.
+
+The job here is to use the survey data collected and write the R code that makes a movie recommendation using the Global Baseline Estimate algorithm.  Please see the attached spreadsheet for implementation details.
+
+## Outline
+
+-   Bring in database
+
+    -   Read .csv SQL database into R as a dataframe
+
+    -   Tidy data
+    -   Show data in table printed, using blanks for empty values
+-   Calculate metrics necessary for global baseline estimate
+    -   user avg
+    -   mean movie
+    -   movie average
+- Calculate estimate (Global Baseline Estimate = Mean Movie Rating + this movie's rating relative to average + this user's rating relative to average)
+    - print table again, with new estimated values filled in (maybe a different color for emphasis?)
+
+## Anticipated Challenges
+
+-   I would like to present a before and after table, but I'm not sure on the table formating in quarto, especially color coding only certain entries. Might be a very manual process.
+
+## Submission Requirements
+
+-   Post all code (SQL, R, Quarto) in a GitHub repository
+
+-   Submit the GitHub link
+
+-   RPubs publication 
