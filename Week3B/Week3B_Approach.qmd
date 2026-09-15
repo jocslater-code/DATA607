@@ -1,0 +1,55 @@
+---
+title: "Week 3B Assignment: Approach"
+subtitle: "Window Functions"
+author: "Jocelyn Slater"
+format: html
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(data.table)
+library(ggplot2)
+```
+
+## Task
+
+1.  Find (or ask an LLM to generate!) a dataset that includes time series for two or more separate items.  For example, you could use end of day stock or cryptocurrency prices since Jan 1, 2022 for several instruments.
+
+2.  Use window functions (in SQL or dplyr) to calculate the year-to-date average and the six-day moving averages for each item.
+
+## Outline
+
+-   Import TSV from IMF recording currency exchange rates
+
+    -   Data: <https://www.imf.org/external/np/fin/data/rms_mth.aspx?SelectDate=2004-01-01&reportType=REP>
+
+    -   Tidy data - just choose two or three currencies to track
+
+-   Use window functions (dplyr) to calculate the year-to-date average and the six-day moving averages for each item.
+
+    -   Print year to date average
+
+    -   Plot raw data and plot six day moving average data for currencies in question
+
+
+
+## Anticipated Challenges
+
+-   I've never worked with TSVs, may be a learning curve
+-   Very large data set that I'll have to edit down during data tiddying
+-   Decision to create my own smoothing moving average filter or use a pre-made function
+
+## Submission Requirements
+
+-   Post all code (SQL, R, Quarto) in a GitHub repository
+
+    -   Make sure data is hosted on git or through IMF website
+
+-   Submit the GitHub link
+
+-   RPubs publication
+
+
+## 
