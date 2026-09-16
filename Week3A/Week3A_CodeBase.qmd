@@ -1,0 +1,172 @@
+---
+title: "Week 3A Assignment: Code Base"
+author: "Jocelyn Slater"
+format: html
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(gt)
+library(gtExtras)
+library(purrr)
+library(tidyr)
+```
+
+## Introduction
+
+WRITE INTRO
+
+Task:
+
+Using the information you collected on movie ratings, implement a Global Baseline Estimate recommendation system in R.   The attached spreadsheet provides the implementation algorithm.
+
+Most recommender systems use personalized algorithms like “content management” and “item-item collaborative filtering.” Sometimes non-personalized recommenders are also useful or necessary. One of the best non-personalized recommender system algorithms is the “Global Baseline Estimate.
+
+The job here is to use the survey data collected and write the R code that makes a movie recommendation using the Global Baseline Estimate algorithm.  Please see the attached spreadsheet for implementation details.
+
+## Data Import
+
+Data is imported from SQL database
+
+```{r}
+rating_raw <- read_csv("https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Week2/movie_rating_data.csv", show_col_types = FALSE)
+glimpse(rating_raw)
+```
+
+## Data Tidying
+
+```{r}
+# Make into datafrane that includes NaN ratings for unseen movies
+full_ratings_df <- rating_raw %>%
+  complete(user_name, movie_title, fill = list(rating = NaN))
+```
+
+
+```{r}
+# Reshape dataframe and print with NaN cells highlighted
+#| label: tbl-ratings-gt
+#| tbl-cap: "User Ratings Matrix"
+
+# Reshape data into 5 rows (users) and 6 movie columns
+ratings_matrix <- full_ratings_df |>
+  pivot_wider(
+    names_from = movie_title,
+    values_from = rating
+  )
+
+# 2. Initialize base table
+tbl <- ratings_matrix |>
+  gt(rowname_col = "user_name") |>
+  sub_missing(missing_text = "NaN") #
+
+# 3. Apply background fill to missing cells per column
+movie_cols <- setdiff(names(ratings_matrix), "user_name")
+
+for (col in movie_cols) {
+  # Get row indices where the current column has NA/NaN
+  na_rows <- which(is.na(ratings_matrix[[col]]))
+  
+  if (length(na_rows) > 0) {
+    tbl <- tbl |>
+      tab_style(
+        style = cell_fill(color = "#f8d7da"), # Soft red fill
+        locations = cells_body(
+          columns = all_of(col),
+          rows = na_rows
+        )
+      )
+  }
+}
+
+tbl
+```
+
+## Global Baseline Estimate
+
+-   Calculate metrics necessary for global baseline estimate
+    -   user avg
+    -   mean movie
+    -   movie average
+-   Calculate estimate (Global Baseline Estimate = Mean Movie Rating + this movie's rating relative to average + this user's rating relative to average)
+    -   print table again, with new estimated values filled in (maybe a different color for emphasis?)
+
+Summary statistics for each movie are calculated below:
+
+```{r }
+  
+# Convert to matrix for calculation convenience (excluding user_name column)
+mat <- as.matrix(ratings_matrix[, -1])
+rownames(mat) <- ratings_matrix$user_name
+
+# 2. Compute Global Baseline components
+mu <- mean(mat, na.rm = TRUE)                            # Overall mean rating
+movie_bias <- colMeans(mat, na.rm = TRUE) - mu           # Movie relative rating (b_i)
+user_bias  <- rowMeans(mat, na.rm = TRUE) - mu           # User relative rating (b_u)
+
+# 3. Create imputed matrix
+imputed_mat <- mat
+
+for (user in rownames(mat)) {
+  for (movie in colnames(mat)) {
+    if (is.na(mat[user, movie])) {
+      # Baseline formula: Overall Mean + Movie Bias + User Bias
+      est <- mu + movie_bias[movie] + user_bias[user]
+      imputed_mat[user, movie] <- round(est, 2)
+    }
+  }
+}
+
+# 4. Convert back to data frame
+imputed_ratings_df <- as.data.frame(imputed_mat) |>
+  tibble::rownames_to_column(var = "user_name")
+```
+
+```{r}
+# Display table with imputed values
+
+# 1. Start with the imputed data frame
+tbl_imputed <- imputed_ratings_df |>
+  gt(rowname_col = "user_name")
+
+# 2. Extract column names (excluding user_name)
+movie_cols <- setdiff(names(imputed_ratings_df), "user_name")
+
+# 3. Loop over each column and apply background fill ONLY to originally missing rows
+for (col in movie_cols) {
+  # Identify row indices that were NA/NaN in the original matrix
+  na_rows <- which(is.na(ratings_matrix[[col]]))
+  
+  if (length(na_rows) > 0) {
+    tbl_imputed <- tbl_imputed |>
+      tab_style(
+        style = cell_fill(color = "#e0f2fe"), # Soft blue highlight for imputed values
+        locations = cells_body(
+          columns = all_of(col),
+          rows = na_rows
+        )
+      )
+  }
+}
+
+tbl_imputed
+```
+In order to make a recommendation, I need to decide which estimated rating will be the cutoff. I have decided 4.5 to be that cutoff. For any movie that has a global baseline estimate of below 4.5, I will not recommend, but at or above 4.5 I will recommend for that user.
+
+Therefore, I would recommend all of the listed movies to every user in my system, with the exception of Cody Slater and Spiderman Brand New Day. 
+
+## Summary and Next Steps
+- Deploy this on a much larger data set
+- Build some type of interface to allow a user to create a profile, enter in their ratings, and get recommendations along the lines of "if you liked this, you might also like this"
+- Because I used popular movies that have been widely liked, the ratings skewed high. I would like to include more mediocre/unpopular movies. 
+- Play around with ratings cutoff for a recommendation
+
+
+## LLM Model Citations
+
+Google DeepMind. (2026). Gemini 3.6 Flash \[Large language model\]. https://gemini.google.com. Accessed Sept 16, 2026. Transcript available in Github as 3AGeminiTranscript.pdf
+
