@@ -1,0 +1,159 @@
+---
+title: "Week 3B Assignment: Code Base"
+subtitle: "Window Functions"
+author: "Jocelyn Slater"
+format: html
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(data.table)
+library(ggplot2)
+library(janitor)
+library(lubridate)
+library(zoo)
+```
+
+## Introduction
+
+WRITE INTRO
+
+Task:
+
+1.  Find (or ask an LLM to generate!) a dataset that includes time series for two or more separate items.  For example, you could use end of day stock or cryptocurrency prices since Jan 1, 2022 for several instruments.
+
+2.  Use window functions (in SQL or dplyr) to calculate the year-to-date average and the six-day moving averages for each item.
+
+## Data Import
+
+Data is imported from the NOAA website [Climate Data Online (CDO)](https://www.ncei.noaa.gov/cdo-web/). I filtered the data to just include a 4 month record of average daily maximum and minimum temperatures in Central Park through the website before exporting. Because of this since there is not much extraneous data to subset out, there is minimal tidying to do, but for good measure, I ran the janitor packaged and cleaned up the location columns in the data frame. 
+
+```{r import-data, echo=FALSE}
+# Import and tidy
+url <- "https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Week3B/NOAA_temp_data.csv"
+raw_noaa_df <- read_csv(url, show_col_types = FALSE)
+raw_noaa_df<- clean_names(raw_noaa_df)
+
+noaa_df<- select(raw_noaa_df, date, dly_tmax_normal, dly_tmin_normal)
+noaa_df <- noaa_df %>% rename(temp_max = dly_tmax_normal)
+noaa_df <- noaa_df %>% rename(temp_min = dly_tmin_normal)
+
+```
+
+```{r}
+# Reformat date column for easy handling and make sure things are in proper order
+noaa_df <- noaa_df %>%
+  mutate(date = dmy(paste0(date, "-2010"))) %>%
+  arrange(date)
+```
+
+## Window Functions
+
+```{r}
+noaa_df <- noaa_df %>%
+  # Calculate cumulative averages
+  mutate(
+    ytd_avg_min = cummean(temp_min),
+    ytd_avg_max = cummean(temp_max)
+  ) %>%
+  # Calculate 6-day moving averages
+  mutate(
+    mavg_6day_min = rollmean(temp_min, k = 6, fill = NA, align = "right"),
+    mavg_6day_max = rollmean(temp_max, k = 6, fill = NA, align = "right")
+  )
+
+```
+
+## Results
+NOTE - 6 day rolling average means there are leading NaNs because it takes six days to get six days
+
+```{r plot-mavg}
+ggplot(noaa_df, aes(x = date)) +
+  # Unprocessed Data
+  geom_line(aes(y = temp_max, color = "Max Temp (Unprocessed)"), linetype = "dotted", linewidth = 0.8) +
+  geom_line(aes(y = temp_min, color = "Min Temp (Unprocessed)"), linetype = "dotted", linewidth = 0.8) +
+  
+  # 6 Day Moving Average
+  geom_line(aes(y = mavg_6day_max, color = "Max Temp (6-day MAvg)"), linetype = "solid", linewidth = 1.1) +
+  geom_line(aes(y = mavg_6day_min, color = "Min Temp (6-day MAvg)"), linetype = "solid", linewidth = 1.1) +
+  
+  # Colors
+  scale_color_manual(
+    values = c(
+      "Max Temp (Unprocessed)"      = "firebrick1",
+      "Max Temp (6-day MAvg)" = "firebrick4",
+      "Min Temp (Unprocessed)"      = "lightblue3",
+      "Min Temp (6-day MAvg)" = "midnightblue"
+    ),
+    breaks = c("Max Temp (Unproce.)", "Max Temp (6-day MAvg)", "Min Temp (Unproc.)", "Min Temp (6-day MAvg)")
+  ) +
+  
+  # Labeling
+  labs(
+    title = "2010 Daily Temperatures",
+    subtitle = "Dotted = Unprocessed | Solid = 6-Day Moving Average",
+    x = "Date",
+    y = "Temperature (F)",
+    color = "Series"
+  ) +
+  scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom"
+  )
+
+```
+
+```{r}
+ggplot(noaa_df, aes(x = date)) +
+  geom_line(aes(y = ytd_avg_max, color = "Max Temp (YTD Avg)"), linetype = "solid", linewidth = 0.9) +
+  geom_line(aes(y = ytd_avg_min, color = "Min Temp (YTD Avg)"), linetype = "solid", linewidth = 0.9) +
+  
+  # Colors
+  scale_color_manual(
+    values = c(
+      "Max Temp (YTD Avg)"  = "coral2",
+      "Min Temp (YTD Avg)"  = "steelblue2"
+    ),
+    breaks = c(
+      "Max Temp (YTD Avg)", "Min Temp (YTD Avg)")
+  ) +
+  
+  # Labels
+  labs(
+    title = "2010 YTD Average Temperatures",
+    x = "Date",
+    y = "Temperature (F)",
+    color = "Series"
+  ) +
+  scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    legend.box = "horizontal",
+    panel.grid.minor = element_blank()
+  ) +
+  guides(color = guide_legend(ncol = 2))
+
+```
+
+
+## Summary and Next Steps
+
+I quickly found that the IMF data was not regular enough for my application and pivoted to weather data from NOAA. In required me to "order" some free data through their online portal which was very easy. Did filtering online
+https://www.ncei.noaa.gov/cdo-web/
+https://www.ncei.noaa.gov/cdo-web/datasets/NORMAL_DLY/stations/GHCND:USW00094728/detail
+
+Consistent gap between the daily high and lows
+
+## Submission Requirements
+
+-   Post all code (SQL, R, Quarto) in a GitHub repository
+
+    -   Make sure data is hosted on git or through IMF website
+
+-   Submit the GitHub link
+
+-   RPubs publication
