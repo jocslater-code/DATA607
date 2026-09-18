@@ -19,20 +19,23 @@ library(tidyr)
 
 ## Introduction
 
-WRITE INTRO
+Using the survey data collected in Week 2, I have implemented a global baseline estimate (GBE) system as below: 
+$$\hat{r}_{ui} = \mu + b_u + b_i$$
+where 
 
-Task:
+$\hat{r}_{ui}$ = predicted rating for movie $i$ and user $u$
 
-Using the information you collected on movie ratings, implement a Global Baseline Estimate recommendation system in R.   The attached spreadsheet provides the implementation algorithm.
+$\mu$ = mean rating for movie $i$ across all users
 
-Most recommender systems use personalized algorithms like “content management” and “item-item collaborative filtering.” Sometimes non-personalized recommenders are also useful or necessary. One of the best non-personalized recommender system algorithms is the “Global Baseline Estimate.
+$b_u$ = user bias ($\mu_u - \mu$ how this user rated movies compared to the average)
 
-The job here is to use the survey data collected and write the R code that makes a movie recommendation using the Global Baseline Estimate algorithm.  Please see the attached spreadsheet for implementation details.
+$b_u$ = movie bias ($\mu_i - \mu$ how this movie is rated compared to the average)
+
+This is an example of a non-personalized recommender system, which are especially useful for new users or anonymous users, where no personal data is a available. 
 
 ## Data Import
 
-Data is imported from SQL database
-
+Data is imported from .csv from the SQL database. See Assignment 2A for more details.
 ```{r}
 rating_raw <- read_csv("https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Week2/movie_rating_data.csv", show_col_types = FALSE)
 glimpse(rating_raw)
@@ -46,6 +49,7 @@ full_ratings_df <- rating_raw %>%
   complete(user_name, movie_title, fill = list(rating = NaN))
 ```
 
+## Data Presentation
 
 ```{r}
 # Reshape dataframe and print with NaN cells highlighted
@@ -88,40 +92,33 @@ tbl
 
 ## Global Baseline Estimate
 
--   Calculate metrics necessary for global baseline estimate
-    -   user avg
-    -   mean movie
-    -   movie average
--   Calculate estimate (Global Baseline Estimate = Mean Movie Rating + this movie's rating relative to average + this user's rating relative to average)
-    -   print table again, with new estimated values filled in (maybe a different color for emphasis?)
-
-Summary statistics for each movie are calculated below:
+To calcuate the GBE, we must first calculate the metrics of each user avg rating, global average movie rating, and each movie average
 
 ```{r }
   
-# Convert to matrix for calculation convenience (excluding user_name column)
+# Convert to matrix 
 mat <- as.matrix(ratings_matrix[, -1])
 rownames(mat) <- ratings_matrix$user_name
 
-# 2. Compute Global Baseline components
-mu <- mean(mat, na.rm = TRUE)                            # Overall mean rating
+# Compute necessary GBE metrics
+mu <- mean(mat, na.rm = TRUE)                            # Overall mean movie rating
 movie_bias <- colMeans(mat, na.rm = TRUE) - mu           # Movie relative rating (b_i)
 user_bias  <- rowMeans(mat, na.rm = TRUE) - mu           # User relative rating (b_u)
 
-# 3. Create imputed matrix
+# Create imputed matrix
 imputed_mat <- mat
 
+# If the cell is NaN (user has not seen the movie), perform GBE calculation and fill in the value
 for (user in rownames(mat)) {
   for (movie in colnames(mat)) {
     if (is.na(mat[user, movie])) {
-      # Baseline formula: Overall Mean + Movie Bias + User Bias
       est <- mu + movie_bias[movie] + user_bias[user]
       imputed_mat[user, movie] <- round(est, 2)
     }
   }
 }
 
-# 4. Convert back to data frame
+# Convert back to data frame, add back in user names
 imputed_ratings_df <- as.data.frame(imputed_mat) |>
   tibble::rownames_to_column(var = "user_name")
 ```
@@ -155,15 +152,11 @@ for (col in movie_cols) {
 
 tbl_imputed
 ```
-In order to make a recommendation, I need to decide which estimated rating will be the cutoff. I have decided 4.5 to be that cutoff. For any movie that has a global baseline estimate of below 4.5, I will not recommend, but at or above 4.5 I will recommend for that user.
-
-Therefore, I would recommend all of the listed movies to every user in my system, with the exception of Cody Slater and Spiderman Brand New Day. 
 
 ## Summary and Next Steps
-- Deploy this on a much larger data set
-- Build some type of interface to allow a user to create a profile, enter in their ratings, and get recommendations along the lines of "if you liked this, you might also like this"
-- Because I used popular movies that have been widely liked, the ratings skewed high. I would like to include more mediocre/unpopular movies. 
-- Play around with ratings cutoff for a recommendation
+In order to make a recommendation, I need to decide which estimated rating will be the cutoff. I have decided 4.5 to be that cutoff. For any movie that has a global baseline estimate of below 4.5, I will not recommend, but at or above 4.5 I will recommend for that user. Therefore, I would recommend all of the listed movies to every user in my system, with the exception that Cody Slater would not be recommended Spiderman Brand New Day. 
+
+Next steps could include surveying many more people and deploying this algorithm on a much larger database. I could also build more of an interface that displayed recommendations automatically after a user filled out the survery, along the lines of "if you liked this, you might also like this". I would also be interested in playing around with the ratings cutoff for a recommendation to see if 4.5 is the best value or if users would be happier with a lower or higher threshold.
 
 
 ## LLM Model Citations
