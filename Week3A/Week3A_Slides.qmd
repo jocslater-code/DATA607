@@ -1,7 +1,8 @@
 ---
-title: "Week 3A Assignment: Code Base"
+title: "Week 3A Assignment"
+subtitle: "Global Baseline Estimate"
 author: "Jocelyn Slater"
-format: html
+format: revealjs
 editor: visual
 ---
 
@@ -18,8 +19,12 @@ library(tidyr)
 ```
 
 ## Introduction
+- Utilizing movie survey data from week 2
+- Global baseline estimate (GBE) system as below: 
 
-Using the survey data collected in Week 2, I have implemented a global baseline estimate (GBE) recommender system as below: $$\hat{r}_{ui} = \mu + b_u + b_i$$ where
+::: {style="font-size: 80%;"}
+$$\hat{r}_{ui} = \mu + b_u + b_i$$
+where 
 
 $\hat{r}_{ui}$ = predicted rating for movie $i$ and user $u$
 
@@ -28,26 +33,38 @@ $\mu$ = mean rating for movie $i$ across all users
 $b_u$ = user bias ($\mu_u - \mu$ how this user rated movies compared to the average)
 
 $b_i$ = movie bias ($\mu_i - \mu$ how this movie is rated compared to the average)
+:::
 
-## Data Import
+## Data Import and Tidying
 
-Data is imported from .csv from the SQL database. See Assignment 2A for more details.
+::: {style="font-size: 80%;"}
+-   Data is imported from SQL database
 
 ```{r}
+#| echo: false
+#| eval: true
 rating_raw <- read_csv("https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Week2/movie_rating_data.csv", show_col_types = FALSE)
 glimpse(rating_raw)
 ```
 
-## Data Tidying
-I create another dataframe that includes NaN ratings for unseen movies.
+-   Also make into dataframe that includes NaN ratings for unseen movies
+
 ```{r}
+#| echo: true
+#| eval: true
+
 full_ratings_df <- rating_raw %>%
   complete(user_name, movie_title, fill = list(rating = NaN))
+glimpse(full_ratings_df)
 ```
+:::
 
-## Data Presentation
-Use great table and conditional formatting to display ratings before recommender.
-```{r}
+## Table Formatting
+```{r, echo=TRUE}
+# Reshape dataframe and print with NaN cells highlighted
+#| label: tbl-ratings-gt
+#| tbl-cap: "User Ratings Matrix"
+
 # Reshape data into 5 rows (users) and 6 movie columns
 ratings_matrix <- full_ratings_df |>
   pivot_wider(
@@ -58,7 +75,12 @@ ratings_matrix <- full_ratings_df |>
 # 2. Initialize base table
 tbl <- ratings_matrix |>
   gt(rowname_col = "user_name") |>
-  sub_missing(missing_text = "NaN") #
+  sub_missing(missing_text = "NaN") |>
+  tab_options(
+    table.font.size = px(26),  
+    table.width = pct(100),             
+    data_row.padding = px(12)        
+  )
 
 # 3. Apply background fill to missing cells per column
 movie_cols <- setdiff(names(ratings_matrix), "user_name")
@@ -70,7 +92,7 @@ for (col in movie_cols) {
   if (length(na_rows) > 0) {
     tbl <- tbl |>
       tab_style(
-        style = cell_fill(color = "#f8d7da"), # Soft red fill
+        style = cell_fill(color = "#f8d7da"), 
         locations = cells_body(
           columns = all_of(col),
           rows = na_rows
@@ -78,16 +100,16 @@ for (col in movie_cols) {
       )
   }
 }
+```
 
+## Conditionally Highlighted Table
+```{r}
 tbl
 ```
 
-## Global Baseline Estimate
+## Global Baseline Estimate Calculation
 
-To calcuate the GBE, we must first calculate the metrics of each user avg rating, global average movie rating, and each movie average
-
-```{r }
-  
+```{r, echo=TRUE }
 # Convert to matrix 
 mat <- as.matrix(ratings_matrix[, -1])
 rownames(mat) <- ratings_matrix$user_name
@@ -115,12 +137,19 @@ imputed_ratings_df <- as.data.frame(imputed_mat) |>
   tibble::rownames_to_column(var = "user_name")
 ```
 
+## Global Baseline Estimate Results
+- Recommendation threshold (4.5?)
 ```{r}
 # Display table with imputed values
 
 # 1. Start with the imputed data frame
 tbl_imputed <- imputed_ratings_df |>
-  gt(rowname_col = "user_name")
+  gt(rowname_col = "user_name") |>
+    tab_options(
+      table.font.size = px(26),  
+      table.width = pct(100),             
+      data_row.padding = px(12)        
+  )
 
 # 2. Extract column names (excluding user_name)
 movie_cols <- setdiff(names(imputed_ratings_df), "user_name")
@@ -133,7 +162,7 @@ for (col in movie_cols) {
   if (length(na_rows) > 0) {
     tbl_imputed <- tbl_imputed |>
       tab_style(
-        style = cell_fill(color = "#e0f2fe"), 
+        style = cell_fill(color = "#e0f2fe"), # Soft blue highlight for imputed values
         locations = cells_body(
           columns = all_of(col),
           rows = na_rows
@@ -145,12 +174,11 @@ for (col in movie_cols) {
 tbl_imputed
 ```
 
-## Summary and Next Steps
+## Next Steps
+- Expand the survey
+- Create interface that automatically presents recommendations when the survey is completed
+- Experiment with recommendation threshold
 
-In order to make a recommendation, I need to decide which estimated rating will be the cutoff. I have decided 4.5 to be that cutoff. For any movie that has a global baseline estimate of below 4.5, I will not recommend, but at or above 4.5 I will recommend for that user. Therefore, I would recommend all of the listed movies to every user in my system, with the exception that Cody Slater would not be recommended Spiderman Brand New Day.
 
-Next steps could include surveying many more people and deploying this algorithm on a much larger database. I could also build more of an interface that displayed recommendations automatically after a user filled out the survery, along the lines of "if you liked this, you might also like this". I would also be interested in playing around with the ratings cutoff for a recommendation to see if 4.5 is the best value or if users would be happier with a lower or higher threshold.
 
-## LLM Model Citations
 
-Google DeepMind. (2026). Gemini 3.6 Flash \[Large language model\]. https://gemini.google.com. Accessed Sept 16, 2026. Transcript available in Github as 3AGeminiTranscript.pdf
