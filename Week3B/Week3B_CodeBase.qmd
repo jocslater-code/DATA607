@@ -19,11 +19,11 @@ library(zoo)
 
 ## Introduction
 
-After initially intending to use currency exchange rate data for my data set of interest for this assignment, I switched focus to a weather data set from NOAA. The weather data tracks the daily maximum and minimum temperature taken from the weather station in Central Park, NYC. To prepare the data for analysis, I reformat the date strings and also clean up extraneous columns. Then, using window functions, I calculate the year to date average as well as the six day moving average for the daily maximum and minimum temperatures and plot the results.
+After initially intending to use currency exchange rate data for my data set of interest for this assignment, I switched focus to a weather data set from NOAA. The weather data tracks the daily maximum and minimum temperature taken from the weather station in Central Park, NYC. To prepare the data for analysis, I reformated the date strings and also cleaned up extraneous columns. Then, using window functions, I calculated the year to date average as well as the six day moving average for the daily maximum and minimum temperatures and plotted the results.
 
 ## Data Import
 
-Data is imported from the NOAA website [Climate Data Online (CDO)](https://www.ncei.noaa.gov/cdo-web/). I filtered the data to just include a 12 month record of average daily maximum and minimum temperatures in Central Park in 2010. I did this through the website before exporting. Because of this since there is not much extraneous data to subset out, there is minimal tidying to do, but for good measure, I ran the janitor packaged, cleaned up the location columns, and formatted the date strings in the data frame.
+Data is imported from the NOAA website [Climate Data Online (CDO)](https://www.ncei.noaa.gov/cdo-web/). I filtered the data to just include a 12 month record of average daily maximum and minimum temperatures in Central Park in 2010. I did this through the website before exporting. There is minimal tidying to do. I ran the janitor package, cleaned up the location columns, and formatted the date strings in the data frame.
 
 ```{r import-data}
 # Import and tidy
@@ -144,16 +144,6 @@ ggplot(noaa_df, aes(x = date)) +
 
 Although my approach outlined the use of IMF currency exchange data, I quickly found that the source I wanted to use was not regular enough for my application. Months were skipped for many of the countries and the time period available was very short. I briefly tried to find a better source, but when that proved to be time consuming, I pivoted to more easily accessible weather data from NOAA. The [NOAA online data portal](https://www.ncei.noaa.gov/cdo-web/) required me to place a free "order" through their online portal which was very easy. I also did much of my data filtering through the portal, so the [data set I was delivered](https://www.ncei.noaa.gov/cdo-web/datasets/NORMAL_DLY/stations/GHCND:USW00094728/detail) in my email inbox had very limited extraneous data.
 
-I opted to use the functions built into the dplyr library to calculate the year to date averages and six day moving averages. My experience with a moving average function is to use it as a smoothing function for very noisy data. Because the temperature data was quite smooth and well behaved already, there is very difference between the unprocessed and the smoothed data sets, as seen in the plot. Both the daily high and low temperatures share behavior, with yearly lows in the winter and highs in the summer, just as expected. We also see expected behavior for the year to date averages of min and max temps. Yearly average starts low in the winter, rises through the spring and summer, and then starts to drop again into the fall and winter.
+I opted to use the functions built into the dplyr library to calculate the year to date averages and six day moving averages. My previous experience with a moving average function is to use it as a smoothing function for very noisy data. Because the temperature data was quite smooth and well behaved already, there is very difference between the unprocessed and the smoothed data sets, as seen in the plot. Both the daily high and low temperatures share behavior, with yearly lows in the winter and highs in the summer, just as expected. We also see expected behavior for the year to date averages of min and max temps. Yearly average starts low in the winter, rises through the spring and summer, and then starts to drop again into the fall and winter.
 
 Next steps could be to include more aspects of the weather such as precipitation or wind speed, and see how these values relate to the daily minimum and maximum temperatures.
-
-## Submission Requirements
-
--   Post all code (SQL, R, Quarto) in a GitHub repository
-
-    -   Make sure data is hosted on git or through IMF website
-
--   Submit the GitHub link
-
--   RPubs publication

@@ -108,11 +108,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
-<p>After initially intending to use currency exchange rate data for my data set of interest for this assignment, I switched focus to a weather data set from NOAA. The weather data tracks the daily maximum and minimum temperature taken from the weather station in Central Park, NYC. To prepare the data for analysis, I reformat the date strings and also clean up extraneous columns. Then, using window functions, I calculate the year to date average as well as the six day moving average for the daily maximum and minimum temperatures and plot the results.</p>
+<p>After initially intending to use currency exchange rate data for my data set of interest for this assignment, I switched focus to a weather data set from NOAA. The weather data tracks the daily maximum and minimum temperature taken from the weather station in Central Park, NYC. To prepare the data for analysis, I reformated the date strings and also cleaned up extraneous columns. Then, using window functions, I calculated the year to date average as well as the six day moving average for the daily maximum and minimum temperatures and plotted the results.</p>
 </section>
 <section id="data-import" class="level2">
 <h2 class="anchored" data-anchor-id="data-import">Data Import</h2>
-<p>Data is imported from the NOAA website <a href="https://www.ncei.noaa.gov/cdo-web/">Climate Data Online (CDO)</a>. I filtered the data to just include a 12 month record of average daily maximum and minimum temperatures in Central Park in 2010. I did this through the website before exporting. Because of this since there is not much extraneous data to subset out, there is minimal tidying to do, but for good measure, I ran the janitor packaged, cleaned up the location columns, and formatted the date strings in the data frame.</p>
+<p>Data is imported from the NOAA website <a href="https://www.ncei.noaa.gov/cdo-web/">Climate Data Online (CDO)</a>. I filtered the data to just include a 12 month record of average daily maximum and minimum temperatures in Central Park in 2010. I did this through the website before exporting. There is minimal tidying to do. I ran the janitor package, cleaned up the location columns, and formatted the date strings in the data frame.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Import and tidy</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>url <span class="ot">&lt;-</span> <span class="st">"https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Week3B/NOAA_temp_data.csv"</span></span>
@@ -258,19 +258,8 @@ Removed 5 rows containing missing values or values outside the scale range
 <section id="summary-and-next-steps" class="level2">
 <h2 class="anchored" data-anchor-id="summary-and-next-steps">Summary and Next Steps</h2>
 <p>Although my approach outlined the use of IMF currency exchange data, I quickly found that the source I wanted to use was not regular enough for my application. Months were skipped for many of the countries and the time period available was very short. I briefly tried to find a better source, but when that proved to be time consuming, I pivoted to more easily accessible weather data from NOAA. The <a href="https://www.ncei.noaa.gov/cdo-web/">NOAA online data portal</a> required me to place a free “order” through their online portal which was very easy. I also did much of my data filtering through the portal, so the <a href="https://www.ncei.noaa.gov/cdo-web/datasets/NORMAL_DLY/stations/GHCND:USW00094728/detail">data set I was delivered</a> in my email inbox had very limited extraneous data.</p>
-<p>I opted to use the functions built into the dplyr library to calculate the year to date averages and six day moving averages. My experience with a moving average function is to use it as a smoothing function for very noisy data. Because the temperature data was quite smooth and well behaved already, there is very difference between the unprocessed and the smoothed data sets, as seen in the plot. Both the daily high and low temperatures share behavior, with yearly lows in the winter and highs in the summer, just as expected. We also see expected behavior for the year to date averages of min and max temps. Yearly average starts low in the winter, rises through the spring and summer, and then starts to drop again into the fall and winter.</p>
+<p>I opted to use the functions built into the dplyr library to calculate the year to date averages and six day moving averages. My previous experience with a moving average function is to use it as a smoothing function for very noisy data. Because the temperature data was quite smooth and well behaved already, there is very difference between the unprocessed and the smoothed data sets, as seen in the plot. Both the daily high and low temperatures share behavior, with yearly lows in the winter and highs in the summer, just as expected. We also see expected behavior for the year to date averages of min and max temps. Yearly average starts low in the winter, rises through the spring and summer, and then starts to drop again into the fall and winter.</p>
 <p>Next steps could be to include more aspects of the weather such as precipitation or wind speed, and see how these values relate to the daily minimum and maximum temperatures.</p>
-</section>
-<section id="submission-requirements" class="level2">
-<h2 class="anchored" data-anchor-id="submission-requirements">Submission Requirements</h2>
-<ul>
-<li><p>Post all code (SQL, R, Quarto) in a GitHub repository</p>
-<ul>
-<li>Make sure data is hosted on git or through IMF website</li>
-</ul></li>
-<li><p>Submit the GitHub link</p></li>
-<li><p>RPubs publication</p></li>
-</ul>
 </section>
 
 </main>
