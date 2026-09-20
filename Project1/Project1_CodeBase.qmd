@@ -1,0 +1,157 @@
+---
+title: "Chess Tournament Data"
+subtitle: "Project 1: Code Base"
+author: "Jocelyn Slater"
+format: html
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(data.table)
+library(ggplot2)
+library(stringr)
+```
+
+# Introduction
+## Task
+
+In this project, you’re given a text file with chess tournament results where the information has some structure. Your job is to create an R Markdown file that generates a .CSV file (that could for example be imported into a SQL database) with the following information for all of the players:
+  - Player’s Name
+  - Player’s State
+  - Total Number of Points
+  - Player’s Pre-Rating
+  - Average Pre Chess Rating of Opponents
+  
+For the first player, the information would be:
+Gary Hua, ON, 6.0, 1794, 1605
+
+1605 was calculated by using the pre-tournament opponents’ ratings of 1436, 1563, 1600, 1610, 1649, 1663, 1716, and dividing by the total number of games played.
+
+If you have questions about the meaning of the data or the results, please post them on the discussion forum. Data science, like chess, is a game of back and forth… The chess rating system (invented by a Minnesota statistician named Arpad Elo) has been used in many other contexts, including assessing relative strength of employment candidates by human resource departments.You may substitute another text file (or set of text files, or data scraped from web pages) of similar or greater complexity, and create your own assignment and solution. You may work in a small team. All of your code should be in an R markdown file (and published to rpubs.com); with your data accessible for the person running the script.
+
+## Data Import
+```{r}
+url <- "https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Project1/tournamentinfo.txt"
+raw_txt <- suppressWarnings(readLines(url))
+# Remove the separator lines and header
+content_lines <- raw_txt[!str_detect(raw_txt, "^\\s*---")] 
+content_lines <- content_lines[3:length(content_lines)]
+```
+
+## Parse Data
+```{r}
+# Create a grouping variable where every pair of lines shares the same ID
+player_groups <- rep(1:(length(content_lines) / 2), each = 2)
+
+# Combine the two lines for each player into a single string
+combined_records <- tapply(content_lines, player_groups, paste0, collapse = " | ")
+
+# Now split by '|' and trim whitespace from each cell
+split_matrix <- str_split(combined_records, "\\|")
+cleaned_data <- lapply(split_matrix, function(row) str_trim(row))
+
+# Convert list to a data frame
+df_all <- as.data.frame(do.call(rbind, cleaned_data), stringsAsFactors = FALSE)
+```
+
+## Tidy Dataframe
+
+```{r}
+# Sub-select the columns
+df_tidy <- select(df_all, V1, V2, V3, V4, V5, V6, V7, V8, V9,V10, V12, V13)
+
+# Rename the columns
+colnames(df_tidy) <- c(
+  "num", "player_name", "total_pts", "R1", "R2", "R3", "R4", "R5", 
+  "R6", "R7", "state", "rating_str"
+)
+```
+
+## Parse Data and Calculate Opponent Information
+
+```{r}
+# Parse the rating string to just get the pre-tournament rating
+# Extract the digits inside the capture group after 'R:'
+df_tidy$pre_rating <- str_match(df_tidy$rating_str, "R:\\s*(\\d+)")[, 2]
+# \s is for spaces
+# (\\d+) grabs all of the numbers up until the next non-digit character like a P, space, or ->
+
+df_tidy$pre_rating <- as.numeric(df_tidy$pre_rating)
+
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R", ignore.case = FALSE), ~ ifelse(str_detect(., "[WLD]"), ., NA)))
+```
+
+
+```{r}
+# There is a better way to do this with * or \\d 
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R1", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R2", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R3", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R4", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R5", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R6", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R7", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+```
+
+
+```{r}
+# Make new columns for opponent pre-ratings
+opp_cols <- paste0("R", 1:7, "_opp_name")
+
+# Loop through each opponent column and pull the matching pre_rating
+for (col in opp_cols) {
+  new_col <- paste0(col, "_score")
+  df_tidy[[new_col]] <- df_tidy$pre_rating[df_tidy[[col]]]
+}
+
+```
+
+```{r}
+# Calculate average opponent pre-rating, ignoring NAs
+score_cols <- paste0("R", 1:7, "_opp_name_score")
+
+# Calculate row-wise mean ignoring NAs
+df_tidy$avg_opp_rating <- round(rowMeans(df_tidy[score_cols], na.rm = TRUE))
+```
+
+## Print Data to .csv
+
+```{r}
+# Create new dataframe with just output columns
+df_print <- select(df_tidy, player_name, state, total_pts, pre_rating, avg_opp_rating)
+
+# Export dataframe to .csv
+write_csv(df_print, "chess_tournament_statistics.csv")
+```
+
+## Summary and Next Steps
+
+## LLM Model Citations
+
+Google DeepMind. (2026). Gemini 3.6 Flash \[Large language model\]. https://gemini.google.com. Accessed Sept 19, 2026. Transcript available in Github as Project1_Gemini_Transcript.pdf
+
+
