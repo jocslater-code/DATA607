@@ -15,23 +15,11 @@ library(stringr)
 ```
 
 # Introduction
-## Task
 
-In this project, you’re given a text file with chess tournament results where the information has some structure. Your job is to create an R Markdown file that generates a .CSV file (that could for example be imported into a SQL database) with the following information for all of the players:
-  - Player’s Name
-  - Player’s State
-  - Total Number of Points
-  - Player’s Pre-Rating
-  - Average Pre Chess Rating of Opponents
-  
-For the first player, the information would be:
-Gary Hua, ON, 6.0, 1794, 1605
-
-1605 was calculated by using the pre-tournament opponents’ ratings of 1436, 1563, 1600, 1610, 1649, 1663, 1716, and dividing by the total number of games played.
-
-If you have questions about the meaning of the data or the results, please post them on the discussion forum. Data science, like chess, is a game of back and forth… The chess rating system (invented by a Minnesota statistician named Arpad Elo) has been used in many other contexts, including assessing relative strength of employment candidates by human resource departments.You may substitute another text file (or set of text files, or data scraped from web pages) of similar or greater complexity, and create your own assignment and solution. You may work in a small team. All of your code should be in an R markdown file (and published to rpubs.com); with your data accessible for the person running the script.
+We were tasked with taking a chess rating United States Chess Federation tournament crosstable, parsing the information, calculating each player's average opponent's pre-tournament ratings, and exporting that and various other information to a separate .csv file. 
 
 ## Data Import
+Import the crosstable as plain text are remove lines that are just the separator rows and headers, just leaving lines with real content.
 ```{r}
 url <- "https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Project1/tournamentinfo.txt"
 raw_txt <- suppressWarnings(readLines(url))
@@ -41,23 +29,24 @@ content_lines <- content_lines[3:length(content_lines)]
 ```
 
 ## Parse Data
+Each player has data that spans two lines, so we need to combine the information from those lines into one combined string, and then parse that string by the | delimiter and white space. Then we place the matrix of parsed strings into a dataframe. 
 ```{r}
-# Create a grouping variable where every pair of lines shares the same ID
+# Create a grouping variable for line combination
 player_groups <- rep(1:(length(content_lines) / 2), each = 2)
 
 # Combine the two lines for each player into a single string
 combined_records <- tapply(content_lines, player_groups, paste0, collapse = " | ")
 
-# Now split by '|' and trim whitespace from each cell
+# Split by '|' whitespace 
 split_matrix <- str_split(combined_records, "\\|")
 cleaned_data <- lapply(split_matrix, function(row) str_trim(row))
 
-# Convert list to a data frame
+# Convert to a data frame
 df_all <- as.data.frame(do.call(rbind, cleaned_data), stringsAsFactors = FALSE)
 ```
 
 ## Tidy Dataframe
-
+To only work with necessary data, we create a tidy data frame with just subselected columns, relabeled for clarity. 
 ```{r}
 # Sub-select the columns
 df_tidy <- select(df_all, V1, V2, V3, V4, V5, V6, V7, V8, V9,V10, V12, V13)
@@ -70,7 +59,7 @@ colnames(df_tidy) <- c(
 ```
 
 ## Parse Data and Calculate Opponent Information
-
+We create a new column with each player's pre-tournament rating, 
 ```{r}
 # Parse the rating string to just get the pre-tournament rating
 # Extract the digits inside the capture group after 'R:'
@@ -79,13 +68,15 @@ df_tidy$pre_rating <- str_match(df_tidy$rating_str, "R:\\s*(\\d+)")[, 2]
 # (\\d+) grabs all of the numbers up until the next non-digit character like a P, space, or ->
 
 df_tidy$pre_rating <- as.numeric(df_tidy$pre_rating)
-
-df_tidy <- df_tidy %>%
-  mutate(across(starts_with("R", ignore.case = FALSE), ~ ifelse(str_detect(., "[WLD]"), ., NA)))
 ```
 
-
+Then we extracted the opponent number for each round and saved them as seven new columns. Opponent numbers were subbed for NA in cases where the game was anything else then a win, lose, or draw since, for the purposes of our exercize, those were the only games that contributed.
 ```{r}
+# If the game is not won, lost, or draw, fill with NA
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R", ignore.case = FALSE), ~ ifelse(str_detect(., "[WLD]"), ., NA)))
+
+# Create new column that just has the opponent number for each round played
 # There is a better way to do this with * or \\d 
 df_tidy <- df_tidy %>%
   mutate(across(starts_with("R1", ignore.case = FALSE), 
@@ -117,7 +108,7 @@ df_tidy <- df_tidy %>%
                 .names = "{.col}_opp_name"))
 ```
 
-
+Once we had an opponent's name for each round, we then pulled the corresponding pre-rating and saved it as a numeric in another column
 ```{r}
 # Make new columns for opponent pre-ratings
 opp_cols <- paste0("R", 1:7, "_opp_name")
@@ -130,6 +121,7 @@ for (col in opp_cols) {
 
 ```
 
+Then it was simple to take the mean, removing NAs, of each row to obtain the average opponent pre-rating. 
 ```{r}
 # Calculate average opponent pre-rating, ignoring NAs
 score_cols <- paste0("R", 1:7, "_opp_name_score")
@@ -139,7 +131,7 @@ df_tidy$avg_opp_rating <- round(rowMeans(df_tidy[score_cols], na.rm = TRUE))
 ```
 
 ## Print Data to .csv
-
+In order to print the desired values in a new .csv, we created a new data frame. 
 ```{r}
 # Create new dataframe with just output columns
 df_print <- select(df_tidy, player_name, state, total_pts, pre_rating, avg_opp_rating)
@@ -149,9 +141,9 @@ write_csv(df_print, "chess_tournament_statistics.csv")
 ```
 
 ## Summary and Next Steps
+With the initial crosstable parsing established, many more calculations could be performed on the chess tournament data to map round by round progress or visualize  changes in ranking. The parsing work also stands as a blueprint of how to process other unconventional .csv files. 
+
 
 ## LLM Model Citations
 
 Google DeepMind. (2026). Gemini 3.6 Flash \[Large language model\]. https://gemini.google.com. Accessed Sept 19, 2026. Transcript available in Github as Project1_Gemini_Transcript.pdf
-
-
