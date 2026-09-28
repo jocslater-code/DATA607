@@ -1,0 +1,72 @@
+---
+title: "Airline Delays"
+subtitle: "Assignment 5A: Approach"
+author: "Jocelyn Slater"
+format: html
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(data.table)
+library(ggplot2)
+```
+
+## Task
+
+Submitted data file with at least some count analysis (+45)
+
+Recreated File in Same Format as given, including missing data where there were empty cells in source data. (+5)
+
+Placed file in Internet-accessible location, such as a publicly-accessible GitHub repo.  Also OK (if less scaleable) to generated and populated dataframe from code. (+5)
+
+Provided code to populate missing data. (+5)
+
+Transformed data from wide to long format. (+10)
+
+Compared percentage (not just counts) of either delays or arrival rates for two airlines overall. \[Either with a chart, or a table; both would be exemplary\].  Include text summarizes findings from this comparison. (+10)
+
+Compared percentage (not just counts) of either delays or arrival rates for two airlines across five cities. \[Either with a chart, or a table; both would be exemplary\].  Include text summarizes findings from this comparison. (+10)
+
+Describe discrepancy between comparing two airlines’ flight performances city-by-city and overall. (+5)
+
+Explain discrepancy between comparing two airlines’ flight performances city-by-city and overall.(+5)
+
+```{r load-in-data}
+url <- "https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Assignment5A/AirlineDelays.csv"
+df_raw <- read.csv(url)
+df_raw
+```
+
+The chart above describes arrival delays for two airlines across five destinations. Your task is to:
+(1) Create a .CSV file (or optionally, a MySQL database!) that includes all of the information above.
+You’re encouraged to use a “wide” structure similar to how the information appears above, so
+that you can practice tidying and transformations as described below.
+(2) Read the information from your .CSV file into R, and use tidyr and dplyr as needed to tidy
+and transform your data.
+(3) Perform analysis to compare the arrival delays for the two airlines.
+
+## Outline
+
+- Load in the raw airline data
+- Tidy the raw data
+  - transform from wide to long
+  - Fill in missing data
+  - Fix up column names
+- Calculate percentage of delays for each airlline and location
+  - Show chart - great table
+  - Show plot 
+- Analysis
+  - Describe and explain discrepancy between airlines city by city and overall
+
+## Anticipated Challenges
+- Reformatting wide to long in R is a new process for me
+
+## Submission Requirements
+
+-   Post all code (SQL, R, Quarto) in a GitHub repository
+
+-   Submit the GitHub link
+
+-   RPubs publication
