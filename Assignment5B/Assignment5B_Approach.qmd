@@ -1,0 +1,59 @@
+---
+title: "ELO Calculations"
+subtitle: "Assignment 5B: Approach"
+author: "Jocelyn Slater"
+format: html
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(data.table)
+library(ggplot2)
+```
+
+## Task
+
+Chess ELO calculations
+
+Based on difference in ratings between the chess players and each of their opponents in our Project 1 tournament, calculate each player’s expected score (e.g. 4.3) and the difference from their actual score (e.g 4.0).  List the five players who most overperformed relative to their expected score, and the five players that most underperformed relative to their expected score.
+
+You’ll find some small differences in different implementation of ELO formulas.  You may use any reasonably-sourced formula, but please cite your source.  
+
+https://www.youtube.com/watch?v=AsYfbmp0To0 
+
+## Outline
+- Read in data from project 1 - use same parsing code
+- Calculate difference between expected score and actual score
+  - Expected scores as new columns
+  - Formula for expected score: https://elochessratingcalculator.com/learn/elo/expected-score/
+  
+$$ E_A = \frac{1}{1 + 10^{(R_B - R_A) / 400}}$$
+$E_A =$ expected score
+
+$R_{A} =$ current rating 
+
+$R_{B} =$ opponent's rating
+
+$400 =$ a scaling factor
+  
+  - Difference as new columns
+- Plot the expected and actual score separate colors on graph/bar chart
+- Plot the absolute difference on graph/bar chart
+- Analysis
+  - Five players who under performed, 5 who over performed (5 largest positive and negative differences)
+  
+
+
+## Anticipated Challenges
+- Unfamiliar with chess ratings, learning curve understand how to implement formula and double check with acutal results
+- Some challenge properly visualizing the data with the x axis non-numeric
+
+## Submission Requirements
+
+-   Post all code (SQL, R, Quarto) in a GitHub repository
+
+-   Submit the GitHub link
+
+-   RPubs publication
