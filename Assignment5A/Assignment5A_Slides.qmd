@@ -1,0 +1,210 @@
+---
+title: "Airline Delays"
+subtitle: "Assignment 5A: Code Base"
+author: "Jocelyn Slater"
+format: revealjs
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(tidyverse)
+library(gt)
+```
+
+## Introduction
+
+- Compare arrival delays from the two airlines
+![](https://github.com/jocslater-code/DATA607/blob/main/Assignment5A/flightChartScreenshot.png?raw=true){width="70%"}
+
+- Create a .csv file 
+- Transforming and tidying the data
+- Analyze the arrival delays by airline and by city using tables and charts
+
+## Load in Data
+- Raw data is loaded in from an excel-created .csv file, hosted on github
+
+```{r load-in-data}
+url <- "https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Assignment5A/AirlineDelays.csv"
+df_raw <- read.csv(url)
+df_raw
+```
+
+## Tidy Data
+
+::: {style="font-size: 70%;"}
+- Columns renamed, Airline names are filled in, NA row is removed, Converted into a long format, City names are edited for convention
+::: 
+
+```{r transform-data, echo=TRUE}
+# Rename columns
+df_clean <- df_raw %>%
+  rename(airline = X, status = X.1) 
+
+# Fill in missing airlines
+df_clean[2, "airline"] <- "ALASKA"
+df_clean[5, "airline"] <- "AM WEST"
+
+# Remove empty row
+df_clean <- df_clean[-3, ]                    
+  
+# Transform into long format  
+df_long <- df_clean %>%  
+  pivot_longer(
+    cols = -c(airline, status),
+    names_to = "city",
+    values_to = "flight_count")
+  
+# Clean up city names
+df_long <- df_long %>%
+  mutate(city = gsub("\\.", " ", city)) 
+```
+
+## Calculations
+
+- Calculate each airline's percentage of delays overall and per city.
+
+```{r calculations, echo=TRUE}
+# Calculate df with delays per city, including breakout per airline
+df_city <- df_long %>%
+  group_by(airline, city) %>%
+  summarise(
+    total_flights = sum(flight_count),
+    delayed_flights = sum(flight_count[status == "delayed"]),
+    delay_pct = (delayed_flights / total_flights)*100,
+    .groups = "drop"
+  )
+
+# Calculate df with delays per airline
+df_airline <- df_long %>%
+  group_by(airline) %>%
+  summarise(
+    city = "Overall",
+    total_flights = sum(flight_count),
+    delayed_flights = sum(flight_count[status == "delayed"]),
+    delay_pct = (delayed_flights / total_flights)*100,
+    .groups = "drop"
+  )
+
+# Calculate df with delays per city, NO breakout per airline
+df_city_combined <- df_long %>%
+  group_by(city) %>%
+  summarise(
+    total_flights = sum(flight_count),
+    delayed_flights = sum(flight_count[status == "delayed"]),
+    delay_pct = (delayed_flights / total_flights) * 100,
+    .groups = "drop"
+  ) %>%
+  arrange(desc(delay_pct)) 
+
+df_overall <- bind_rows(df_city, df_airline)
+
+```
+
+## Delay Analysis (by airline)
+```{r great-table}
+gt_table <- df_overall %>%
+  mutate(delay_pct = delay_pct / 100) %>% 
+  gt(groupname_col = "airline", rowname_col = "city") %>%
+  tab_header(
+    title = md("**Flight Delays Summary**"),
+    subtitle = "Percentage of delayed flights by city and overall"
+  ) %>%
+  cols_label(
+    total_flights = "Total Flights",
+    delayed_flights = "Delayed Flights",
+    delay_pct = "Delay Rate"
+  ) %>%
+  fmt_integer(columns = c(total_flights, delayed_flights)) %>%
+  fmt_percent(columns = delay_pct, decimals = 1) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#f0f0f0"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(
+      rows = city == "Overall"
+    )
+  )
+gt_table
+```
+
+## Delay Analysis (by city)
+```{r}
+gt_city_table <- df_city_combined %>%
+  mutate(delay_pct = delay_pct / 100) %>% 
+  gt() %>%
+  tab_header(
+    title = md("**Combined Delays by City**"),
+    subtitle = "Aggregated across all airlines"
+  ) %>%
+  cols_label(
+    city = "City",
+    total_flights = "Total Flights",
+    delayed_flights = "Delayed Flights",
+    delay_pct = "Delay Rate"
+  ) %>%
+  fmt_integer(columns = c(total_flights, delayed_flights)) %>%
+  fmt_percent(columns = delay_pct, decimals = 1)
+
+gt_city_table
+
+```
+
+## Delay Analysis 
+```{r bar-plot}
+ggplot(df_city, aes(x = reorder(city, delay_pct), y = delay_pct, fill = airline)) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  labs(
+    title = md("Flight Delays Summary"),
+    x = "City",
+    y = "Delay Percentage",
+    fill = "Airline",
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major.x = element_blank()
+  )
+```
+
+## Delay Analysis (by city)
+```{r}
+ggplot(df_city_combined, aes(x = reorder(city, delay_pct), y = delay_pct)) +
+  geom_col(fill = "steelblue", alpha = 0.8) +
+  geom_text(aes(label = sprintf("%.1f%%", delay_pct)), vjust = -0.5, fontface = "bold") +
+  scale_y_continuous(
+    labels = scales::percent_format(scale = 1),
+    expand = expansion(mult = c(0, 0.15)) 
+  ) +
+  labs(
+    title = "Combined Delays by City",
+    subtitle = "Aggregated across all airlines",
+    x = "City",
+    y = "Delay Percentage"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+    panel.grid.major.x = element_blank(),
+    plot.title = element_text(face = "bold")
+  )
+
+```
+
+## Discussion and Next Steps
+::: {style="font-size: 80%;"}
+- Both airlines trend together for each city
+  - AM West consistently experiences more delays (3%) 
+- San Francisco had the highest delay rate (22%)
+
+**Further Work**
+
+- Exploring the associated departure delays from the airports each plane is leaving from.
+  - If the planes are arriving late because they are departing late or if their is something in the typical route that causes the delay 
+- Expand the analysis by pulling in information from other cities, airline, and years
+
+::: 
