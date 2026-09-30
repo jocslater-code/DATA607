@@ -2,7 +2,13 @@
 title: "ELO Calculations"
 subtitle: "Assignment 5B: Code Base"
 author: "Jocelyn Slater"
-format: html
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    embed-resources: true
 editor: visual
 ---
 
@@ -19,13 +25,17 @@ library(stringr)
 
 ## Introduction
 
-Task: Chess ELO calculations
+Using the player's pre-ratings and expected scores for each round match up (Project 1), we calculate the difference between expected score and actual score to evaluate under and over performance. The expected score $E_A$ is calcualted using the following formula:
 
-Based on difference in ratings between the chess players and each of their opponents in our Project 1 tournament, calculate each player’s expected score (e.g. 4.3) and the difference from their actual score (e.g 4.0).  List the five players who most overperformed relative to their expected score, and the five players that most underperformed relative to their expected score.
+$$ E_A = \frac{1}{1 + 10^{(R_B - R_A) / 400}}$$ $E_A =$ expected score
 
-You’ll find some small differences in different implementation of ELO formulas.  You may use any reasonably-sourced formula, but please cite your source.  
+$R_{A} =$ current rating
 
-https://www.youtube.com/watch?v=AsYfbmp0To0 
+$R_{B} =$ opponent's rating
+
+$400 =$ a scaling factor
+
+The tournament data is imported using the same code as used in Project 1. New code begins after the dashed divider.
 
 ## Data Import
 
@@ -139,6 +149,10 @@ for (col in opp_cols) {
 }
 ```
 
+```{=html}
+<hr style="border: none; border-top: 5px dashed #8c8c8c; width: 100%; margin: 30px 0;">
+```
+
 ## Elo Calculation
 ```{r}
 # Make new dataframe with only pertinent Elo columns and rename them because this getting long...
@@ -247,8 +261,17 @@ ggplot(top_bottom_df, aes(x = reorder(player_name, diff_EA), y = diff_EA, fill =
   
 
 ## Discussion and Next Steps
-- Majority of people had a good day - Mostly overperformed (56%)
-- Highest upset was a full 4 points (Aditya Baiaj)
+It seems that for this chess tournament, the majority of players had a good day - 56% of them overperformed, exceeding their expected scores. Aditya Baiaj had the best day of all though, overperforming by a full 4 points!
 
-## LLM Model Citations
+Further work could be to repeat this analysis with other tournament data to observe trends among other player groups. We could explore if certain demographics for players or factors of the day (time games are played, weather, location) impacts performance. I would also be currious to explore the cumulative effect of each game; if a player wins/loses the prior game, how does that statistically effect the following games?
+
+
+## Citations
+
+Elo Chess Rating Calculator. (2026). *Expected score in Elo chess ratings*. 
+https://elochessratingcalculator.com/learn/elo/expected-score/
+
 Google DeepMind. (2026). Gemini 3.6 Flash \[Large language model\]. https://gemini.google.com. Accessed Sept 29, 2026. Transcript available in Github as Assignment5B_Gemini_Transcript.pdf
+
+
+
