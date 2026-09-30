@@ -1,0 +1,264 @@
+---
+title: "ELO Calculations"
+subtitle: "Assignment 5B: Code Base"
+author: "Jocelyn Slater"
+format: revealjs
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(tidyverse)
+library(gt)
+library(readr)
+library(data.table)
+library(stringr)
+```
+
+## Introduction
+
+- Using Project 1 Chess data, we evaluate performance
+  - Difference between expected score and actual score 
+$$ E_A = \frac{1}{1 + 10^{(R_B - R_A) / 400}}$$ $E_A =$ expected score
+
+$R_{A} =$ current rating
+
+$R_{B} =$ opponent's rating
+
+$400 =$ a scaling factor
+
+
+
+```{r}
+url <- "https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Project1/tournamentinfo.txt"
+raw_txt <- suppressWarnings(readLines(url))
+# Remove the separator lines and header
+content_lines <- raw_txt[!str_detect(raw_txt, "^\\s*---")] 
+content_lines <- content_lines[3:length(content_lines)]
+```
+
+```{r}
+# Create a grouping variable for line combination
+player_groups <- rep(1:(length(content_lines) / 2), each = 2)
+
+# Combine the two lines for each player into a single string
+combined_records <- tapply(content_lines, player_groups, paste0, collapse = " | ")
+
+# Split by '|' whitespace 
+split_matrix <- str_split(combined_records, "\\|")
+cleaned_data <- lapply(split_matrix, function(row) str_trim(row))
+
+# Convert to a data frame
+df_all <- as.data.frame(do.call(rbind, cleaned_data), stringsAsFactors = FALSE)
+```
+
+
+```{r}
+# Sub-select the columns
+df_tidy <- select(df_all, V1, V2, V3, V4, V5, V6, V7, V8, V9,V10, V12, V13)
+
+# Rename the columns
+colnames(df_tidy) <- c(
+  "num", "player_name", "total_pts", "R1", "R2", "R3", "R4", "R5", 
+  "R6", "R7", "state", "rating_str"
+)
+```
+
+
+```{r}
+# Parse the rating string to just get the pre-tournament rating
+# Extract the digits inside the capture group after 'R:'
+df_tidy$pre_rating <- str_match(df_tidy$rating_str, "R:\\s*(\\d+)")[, 2]
+# \s is for spaces
+# (\\d+) grabs all of the numbers up until the next non-digit character like a P, space, or ->
+
+df_tidy$pre_rating <- as.numeric(df_tidy$pre_rating)
+```
+
+
+```{r}
+# If the game is not won, lost, or draw, fill with NA
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R", ignore.case = FALSE), ~ ifelse(str_detect(., "[WLD]"), ., NA)))
+
+# Create new column that just has the opponent number for each round played
+# There is a better way to do this with * or \\d 
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R1", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R2", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R3", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R4", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R5", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R6", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+df_tidy <- df_tidy %>%
+  mutate(across(starts_with("R7", ignore.case = FALSE), 
+                ~ as.numeric(str_extract(., "\\d+")), 
+                .names = "{.col}_opp_name"))
+```
+
+
+```{r}
+# Make new columns for opponent pre-ratings
+opp_cols <- paste0("R", 1:7, "_opp_name")
+
+# Loop through each opponent column and pull the matching pre_rating
+for (col in opp_cols) {
+  new_col <- paste0(col, "_score")
+  df_tidy[[new_col]] <- df_tidy$pre_rating[df_tidy[[col]]]
+}
+```
+
+
+
+## Elo Calculation
+- Using all the same code to import and parse the data from Project 1
+- Calculate expected scores and add as a new column
+```{r, echo=TRUE}
+# Make new dataframe with only pertinent Elo columns and rename them because this getting long...
+df_Elo <- select(df_tidy, num, player_name, pre_rating, total_pts, R1_opp_name_score, R2_opp_name_score, R3_opp_name_score, R4_opp_name_score, R5_opp_name_score, R6_opp_name_score, R7_opp_name_score)
+colnames(df_Elo) <- c("num", "player_name", "pre_rating", "total_pts", "R1_opp_rating", "R2_opp_rating", "R3_opp_rating", "R4_opp_rating", "R5_opp_rating", "R6_opp_rating", "R7_opp_rating")
+
+# Calculate expected score
+df_Elo <- df_Elo %>%
+  mutate(
+    across(
+      starts_with("R") & ends_with("_opp_rating"),
+      ~ 1 / (1 + 10^((.x - pre_rating) / 400)),
+      .names = "{.col}_expected"
+    )
+  )
+# Rename columns again
+colnames(df_Elo) <- c("num", "player_name", "pre_rating", "total_pts", "R1_opp_rating", "R2_opp_rating", "R3_opp_rating", "R4_opp_rating", "R5_opp_rating", "R6_opp_rating", "R7_opp_rating", "R1_EA","R2_EA", "R3_EA", "R4_EA", "R5_EA", "R6_EA", "R7_EA")
+```
+
+## Expected score difference
+- Sum $E_A$'s to get the total expected score
+- Take difference from actual score in new column
+```{r, echo=TRUE}
+# Add new column with the sum of all of the expected scores so we can compare this to the actual score
+expected_cols <- grep("_EA", names(df_Elo), value = TRUE)
+
+# Compute total expected score from the rounds for each player
+df_Elo$total_EA <- rowSums(df_Elo[, expected_cols], na.rm = TRUE)
+
+df_Elo$diff_EA <- as.numeric(df_Elo$total_pts)-df_Elo$total_EA
+```
+
+## Expected Score Analysis
+- Looking for the five players who underperformed (largest negative difference) and who overperformed (largest positive difference)
+
+```{r, echo=TRUE}
+# Count how many players under/overperformed
+df_Elo %>%
+  filter(!is.na(diff_EA)) %>%
+  summarise(
+    Positive = sum(diff_EA > 0),
+    Negative = sum(diff_EA < 0),
+    Zero     = sum(diff_EA == 0)
+  )
+```
+
+## Expected Score Analysis
+```{r}
+# Scatter plot of all performances
+df_Elo %>%
+  filter(!is.na(diff_EA)) %>%
+  mutate(player_index = row_number()) %>%
+  ggplot(aes(x = player_index, y = diff_EA)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_point(aes(color = diff_EA > 0), size = 2.5, alpha = 0.8) +
+  scale_color_manual(
+    values = c("TRUE" = "#2e7d32", "FALSE" = "#c62828"),
+    labels = c("TRUE" = "Overperformed", "FALSE" = "Underperformed"),
+    name = "Performance"
+  ) +
+  labs(
+    title = "Player Performance",
+    subtitle = "Actual Score - Expected Score",
+    x = "Players",
+    y = "Score Difference"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_blank(),  # Hides x-axis tick labels (names/numbers)
+    axis.ticks.x = element_blank(), # Hides x-axis ticks
+    panel.grid.minor = element_blank()
+  )
+```
+
+## Expected Score Analysis
+- Get top 5 largest and top 5 smallest in new dataframe
+```{r, echo=TRUE}
+
+top_bottom_df <- df_Elo %>%
+  filter(!is.na(diff_EA)) %>%
+  slice_max(order_by = diff_EA, n = 5) %>%
+  bind_rows(
+    df_Elo %>%
+      filter(!is.na(diff_EA)) %>%
+      slice_min(order_by = diff_EA, n = 5)
+  ) 
+top_bottom_df <- select(top_bottom_df, player_name, diff_EA) 
+top_bottom_df <- arrange(top_bottom_df, diff_EA)
+```
+## Expected Score Analysis
+```{r}
+# Plot this in a sideways bar chart
+ggplot(top_bottom_df, aes(x = reorder(player_name, diff_EA), y = diff_EA, fill = diff_EA > 0)) +
+  geom_col() +
+  geom_text(
+    aes(label = round(diff_EA, 2)),
+    hjust = ifelse(top_bottom_df$diff_EA >= 0, -0.2, 1.2),
+    size = 3.5
+  ) +
+  coord_flip() +
+  scale_fill_manual(
+    values = c("TRUE" = "#2e7d32", "FALSE" = "#c62828"),
+    labels = c("TRUE" = "Overperformed", "FALSE" = "Underperformed"),
+    name = "Performance"
+  ) +
+  labs(
+    title = "Top 5 and Bottom 5 Players",
+    x = "Player Name",
+    y = "Performance Difference"
+  ) +
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank())
+
+```
+  
+
+## Discussion and Next Steps
+::: {style="font-size: 80%;"}
+- Majority of players had a good day 
+  - 56% of them overperformed, exceeding their expected scores
+  - Aditya Baiaj had the best day of all, overperforming by a full 4 points!
+
+**Further work**
+
+- Repeat this analysis with expanded tournament/player data to observe trends among other player groups performance
+  - Certain demographics for players
+  - factors of the day (time games are played, weather, location) 
+- Cumulative effects
+  - If a player wins/loses the prior game, how does that statistically effect the following games?
+:::
+
