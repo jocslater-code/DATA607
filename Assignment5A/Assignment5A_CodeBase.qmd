@@ -2,7 +2,13 @@
 title: "Airline Delays"
 subtitle: "Assignment 5A: Code Base"
 author: "Jocelyn Slater"
-format: html
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    embed-resources: true
 editor: visual
 ---
 
@@ -16,17 +22,15 @@ library(gt)
 
 ## Introduction
 
-TASK: The chart describes arrival delays for two airlines across five destinations. 
+Given the chart below, we were tasked with performing analysis to compare arrival delays from the two airlines
+![](https://github.com/jocslater-code/DATA607/blob/main/Assignment5A/flightChartScreenshot.png?raw=true)
 
-(1) Create a .CSV file (or optionally, a MySQL database!) that includes all of the information above. You’re encouraged to use a “wide” structure similar to how the information appears above, so that you can practice tidying and transformations as described below. 
-
-(2) Read the information from your .CSV file into R, and use tidyr and dplyr as needed to tidy and transform your data. 
-
-(3) Perform analysis to compare the arrival delays for the two airlines.
-
+This required creating a .csv file of the information. It resulted in a messy wide structured dataframe when loaded into R. After transforming and tidying the data, we could compare the arrival delays by airline and by city using tables and charts. 
 
 # Load in Data
-The raw data is loaded in from an excel-created csv file, hosted on github.
+
+The raw data is loaded in from an excel-created .csv file, hosted on github.
+
 ```{r load-in-data}
 url <- "https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Assignment5A/AirlineDelays.csv"
 df_raw <- read.csv(url)
@@ -34,7 +38,9 @@ df_raw
 ```
 
 # Tidy Data
-Before any analysis can be performed, the flight data must be tidied up. In the raw form, it is in a wide format, with rows of NA's, column name convention issues, and missing airline information. First the columns are renamed, the airline names are filled in, the NA row is removed, the data is converted into a long format, and finally the city names are edited for convention. 
+
+Before any analysis can be performed, the flight data must be tidied up. In the raw form, it is in a wide format, with rows of NA's, column name convention issues, and missing airline information. First the columns are renamed, the airline names are filled in, the NA row is removed, the data is converted into a long format, and finally the city names are edited for convention.
+
 ```{r transform-data}
 # Rename columns
 df_clean <- df_raw %>%
@@ -60,7 +66,9 @@ df_long <- df_long %>%
 ```
 
 # Calculations
+
 We calculate each airline's percentage of delays overall and per city.
+
 ```{r calculations}
 # Calculate df with delays per city, including breakout per airline
 df_city <- df_long %>%
@@ -97,7 +105,9 @@ df_city_combined <- df_long %>%
 df_overall <- bind_rows(df_city, df_airline)
 
 ```
-Delay percentage broken down by city and airline is then displayed in a chart format using a great table, as well as a bar plot. The same information is also shown grouped just per city with the airline data combined. 
+
+Delay percentage broken down by city and airline is then displayed in a chart format using a great table, as well as a bar plot. The same information is also shown grouped just per city with the airline data combined.
+
 ```{r great-table}
 gt_table <- df_overall %>%
   mutate(delay_pct = delay_pct / 100) %>% 
@@ -183,5 +193,7 @@ ggplot(df_city_combined, aes(x = reorder(city, delay_pct), y = delay_pct)) +
 ```
 
 ## Discussion and Next Steps
+
 It is clear from the visualized data that although both airlines trend together for each city, AM West consistently experiences more delays. Overall, AM West has about 3% more delays than Alaska. For both airlines, San Francisco had the highest delay rate, at almost 22%. 
+
 Because these are all arrival delays, I would be interested in exploring the associated departure delays from the airports each plane is leaving from. This would help us determine if the planes are arriving late because they are departing late or if their is something in the typical route that causes the delay. We could also expand the analysis by pulling in information from other cities, airline, and years.
