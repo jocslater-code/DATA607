@@ -198,7 +198,8 @@ ggplot(df_city_combined, aes(x = reorder(city, delay_pct), y = delay_pct)) +
 ## Discussion and Next Steps
 ::: {style="font-size: 80%;"}
 - Both airlines trend together for each city
-  - AM West consistently experiences more delays (3%) 
+  - Alaska consistently experiences more delays (3%) 
+- Simpson's paradox - Alaska Airlines has lower city by city delay rate but higher overall
 - San Francisco had the highest delay rate (22%)
 
 **Further Work**

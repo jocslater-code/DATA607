@@ -22,10 +22,9 @@ library(gt)
 
 ## Introduction
 
-Given the chart below, we were tasked with performing analysis to compare arrival delays from the two airlines
-![](https://github.com/jocslater-code/DATA607/blob/main/Assignment5A/flightChartScreenshot.png?raw=true)
+Given the chart below, we were tasked with performing analysis to compare arrival delays from the two airlines ![](https://github.com/jocslater-code/DATA607/blob/main/Assignment5A/flightChartScreenshot.png?raw=true)
 
-This required creating a .csv file of the information. It resulted in a messy wide structured dataframe when loaded into R. After transforming and tidying the data, we could compare the arrival delays by airline and by city using tables and charts. 
+This required creating a .csv file of the information. It resulted in a messy wide structured dataframe when loaded into R. After transforming and tidying the data, we could compare the arrival delays by airline and by city using tables and charts.
 
 # Load in Data
 
@@ -194,6 +193,6 @@ ggplot(df_city_combined, aes(x = reorder(city, delay_pct), y = delay_pct)) +
 
 ## Discussion and Next Steps
 
-It is clear from the visualized data that although both airlines trend together for each city, AM West consistently experiences more delays. Overall, AM West has about 3% more delays than Alaska. For both airlines, San Francisco had the highest delay rate, at almost 22%. 
+It is clear from the visualized data that although both airlines trend together for each city, AM West consistently experiences more delays on a city by city basis. However, overall Alaska has about 3% more delays than AM West For both airlines - an example of Simpson's paradox. San Francisco had the highest delay rate, at almost 22%.
 
 Because these are all arrival delays, I would be interested in exploring the associated departure delays from the airports each plane is leaving from. This would help us determine if the planes are arriving late because they are departing late or if their is something in the typical route that causes the delay. We could also expand the analysis by pulling in information from other cities, airline, and years.
