@@ -1,0 +1,152 @@
+---
+title: "Project 2: Data Tidying"
+subtitle: "Data Set N"
+author: "Jocelyn Slater"
+date:   today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: flatly
+execute:
+  echo:    true
+  warning: false
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(tidyverse)
+library(gt)
+library(readr)
+library(data.table)
+library(stringr)
+```
+
+## Task (taken from Brightspace directly)
+
+1. Objective
+This project develops practical competency in transforming wide-format datasets into tidy formats suitable for downstream analysis. All transformations are performed using the tidyr and dplyr packages in R.
+
+2. Dataset Selection
+You must satisfy all three of the following requirements when selecting your datasets:
+  - Select three (3) *distinct* wide-format datasets from the Week 5 Discussion 5A items.
+  - You may substitute your own dataset only if it is structurally wide.
+  - Do not use the instructor's Sample Post dataset.
+
+3. Data Preparation
+Complete all three sub-tasks below for each selected dataset. Steps 3.1 through 3.3 must be applied independently to every dataset.
+
+3.1 Raw Data Construction
+Create a source data file that captures all information from the original dataset while preserving its wide (untidy) structure. This file serves as the unmodified input to your transformation pipeline.
+
+Create a .csv file containing all information from the original dataset.
+Preserve the original wide format — do not tidy the data at this stage.
+Alternative: store the dataset in a relational database instead of a flat .csv file.
+ 
+DELIVERABLE Commit the raw dataset file(s) to your GitHub repository before proceeding to Step 3.2.
+
+3.2 Data Import and Tidying
+Primary Grading Component
+
+Import your data into R and apply a reproducible sequence of tidyr and dplyr operations. Your code must demonstrate each of the following transformations explicitly:
+
+- Reshape from wide to tidy (long) format
+- Normalize variable structure
+- Rename variables to follow a consistent naming convention
+- Address missing or inconsistent values with documented handling decisions
+ 
+The following example illustrates a minimal tidying pipeline using pivot_longer():
+
+```{r, eval = FALSE}
+# Import raw data
+raw_data <- read.csv("data/dataset_wide.csv")
+
+# Reshape to tidy format
+tidy_data <- raw_data |>
+  pivot_longer(
+    cols      = -id,
+    names_to  = "variable",
+    values_to = "value"
+  ) |>
+  rename_with(tolower) |>
+  drop_na()
+```
+
+3.3 Analysis
+Perform the specific analysis requested in the original Discussion 5A item for each dataset. All analysis must operate on the tidy dataset produced in Step 3.2 — do not analyze the raw wide-format data directly.
+
+Include the following outputs as appropriate for each analysis:
+- Summary tables with clearly labeled columns and units
+- Visualizations with axis labels, titles, and legends
+- A brief narrative interpreting each result in context
+
+4. Documentation and Reproducibility
+All code and narrative must be written in a Quarto Markdown (.Qmd) file. Quarto extends the R Markdown ecosystem with improved cross-referencing, theming, and multi-format output — see the quarto.org documentation if you are new to the format.
+
+
+Your .Qmd file must document each of the following in order:
+
+- Data source — where the dataset originated and how it was obtained
+- Data structure before tidying — column names, row count, and a representative sample
+- Transformation steps — commented, executable code with explanations of each decision
+- Analytical methods — a description of the statistical or summarization approach applied
+- Conclusions — a substantive interpretation of results with reference to specific values
+ 
+
+5. Submission Requirements
+Submit the following two URLs for each of your three datasets. All six links must be functional at the time of grading.
+
+URL to the .Qmd source file in your GitHub repository
+URL to the rendered, published output on rpubs.com
+
+IMPORTANT All datasets and code must be publicly accessible via GitHub. Private repositories will not be graded. Verify that all links resolve without authentication before submitting.
+
+Submission Checklist
+Before submitting, confirm each item below:
+
+Three independent wide-format datasets selected from Discussion 5A
+Raw data files committed to GitHub (Step 3.1)
+Tidying pipeline documented and executable in .Qmd (Step 3.2)
+Analysis uses only the tidy dataset (Step 3.3)
+GitHub repository is public and all links resolve
+Published RPubs output is accessible without login
+
+## Outline
+This outline will be replicated for each data set. Three different Code Base quarto files will be submitted, following the same format:
+
+- Introduction (explain data source)
+  - Anastasiia Gmyrina US Census population data 
+  - Esra Dogan GDP per capita data
+  - Jocelyn Slater fictional business data
+  - Data is hosted here: https://github.com/jocslater-code/DATA607/tree/main/Project2
+- Load in Data (.csv)
+  - Show raw data format (column names, row count, and a representative sample)
+- Tidy/Transformation data — commented, executable code with explanations of each decision
+  - Reshape from wide to tidy (long) format
+  - Normalize variable structure
+  - Rename variables to follow a consistent naming convention
+  - Address missing or inconsistent values with documented handling decisions
+- Analytical methods — a description of the statistical or summarization approach applied
+  - Draw from recommended analyses from the post
+  - Summary tables with clearly labeled columns and units
+  - Visualizations with axis labels, titles, and legends
+  - A brief narrative interpreting each result in context
+- Conclusions 
+  — a substantive interpretation of results with reference to specific values
+ 
+
+## Anticipated Challenges
+
+-   Don't want to get mixed up with different data sets - need to keep them straight
+- 
+
+## Submission Requirements
+
+-   Post all code and data (SQL, R, Quarto) in a GitHub repository
+
+-   Submit the GitHub link
+
+-   RPubs publication
