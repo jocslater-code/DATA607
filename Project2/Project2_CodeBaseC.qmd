@@ -1,0 +1,127 @@
+---
+title: "Project 2: Data Tidying"
+subtitle: "World Bank GDP Per Capita"
+author: "Jocelyn Slater"
+date:   today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: flatly
+execute:
+  echo:    true
+  warning: false
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(scales)
+library(gt)
+```
+
+## Introducion
+
+Esra Dogan suggested looking at the GDP per capita data from the World Bank. The raw data was very messy with lots of missing data, so before any analysis could be done, we first needed to tidy the dataframe. Then we investigated which countries had the fastest growth in recent years.
+
+## Import Data
+
+Import data from github hosted .csv and glimpse what we are working with. 
+```{r load-in-data}
+url <- "https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Project2/WorldBankGDP/API_NY.GDP.PCAP.CD_DS2_en_csv_v2_440845.csv"
+df_raw <- read.csv(url, skip = 4)
+head(df_raw)
+```
+
+## Tidy Data
+The data needs to be formatted for analysis. I first clean up the column names using the Janitor library, covert from wide to long, extract clear years, and drop rows that have all NA values. Then I pick just the geographic data (regions) that I am interested in exploring. 
+```{r tidy-data}
+df_tidy <- df_raw %>%
+  # Janitor to clean up the column names
+  clean_names() %>%
+  
+  # Pivot all year columns starting with 'x' into long format
+  pivot_longer(
+    cols = starts_with("x"),
+    names_to = "year",
+    values_to = "value"
+  ) %>%
+  
+  # Extract years and cast as numeric
+  mutate(
+    # Remove the 'x' or 'x_' prefix and convert to numeric year
+    year = as.numeric(str_remove(year, "^x_?"))
+  ) %>%
+  
+  # Drop NAs
+  filter(!is.na(value))
+
+
+df_mini <- df_tidy %>% 
+  filter(country_name %in% c("Middle East, North Africa, Afghanistan & Pakistan", "East Asia & Pacific", "European Union", "Latin America & Caribbean","North America" , "Africa Eastern and Southern", "Africa Western and Central"))
+
+df_mini$country_name[df_mini$country_name == "Middle East, North Africa, Afghanistan & Pakistan"] <- "MENA"
+df_mini$country_name[df_mini$country_name == "Africa Eastern and Southern"] <- "Southern and Eastern Africa"
+df_mini$country_name[df_mini$country_name == "Africa Western and Central"] <- "Central and Western Africa"
+
+head(df_mini)
+
+
+```
+
+## Analysis
+We plotted all of the data to get a qualitative sense of overall trends and created summary tables to get a quantitative view of the GDP per capita data. GDP is in current (2026) US dollars.
+```{r country-summary}
+country_summary <- df_mini %>%
+  group_by(country_name, country_code) %>%
+  summarise(
+    start_year = min(year, na.rm = TRUE),
+    end_year   = max(year, na.rm = TRUE),
+    min_gdp    = min(value, na.rm = TRUE),
+    max_gdp    = max(value, na.rm = TRUE),
+    mean_gdp   = mean(value, na.rm = TRUE),
+    latest_gdp = value[which.max(year)],
+    .groups = "drop"
+  )
+
+country_summary$start_year<- NULL
+country_summary$end_year<- NULL
+
+country_summary %>%
+  gt() %>%
+  tab_header(
+    title = "GDP Per Capita Summary by Region",
+  ) %>%
+  fmt_currency(
+    columns = c(min_gdp, max_gdp, mean_gdp, latest_gdp),
+    currency = "USD",
+    decimals = 2) %>%
+  cols_label(
+    country_name = "Country",
+    country_code = "ISO Code",
+    min_gdp      = "Min GDP",
+    max_gdp      = "Max GDP",
+    mean_gdp     = "Mean GDP",
+    latest_gdp   = "Latest GDP"
+  )
+
+```
+
+```{r plot_gdp}
+ggplot(df_mini, aes(x = year, y = value, color = country_name)) +
+  geom_line(linewidth = 1) +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  labs(
+    title = "GDP Per Capita Over Time by Region",
+    x = "Year",
+    y = "GDP per Capita (Current US$)",
+    color = "Region"
+  ) +
+  theme_minimal()
+```
+    
+## Discussion and Next Steps
+
+- country with largest growth

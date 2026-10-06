@@ -1,0 +1,154 @@
+---
+title: "Project 2: Data Tidying"
+subtitle: "US Census Population Data"
+author: "Jocelyn Slater"
+date:   today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: flatly
+execute:
+  echo:    true
+  warning: false
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(scales)
+library(gt)
+```
+
+## Introduction
+
+Anastasiia Gmyrina suggested looking into the US Census population data, specifically, the 10 states that saw the largest positive and negative population changes from 2020-2022. The raw data was wide and not formatted for analysis, so before exploring the relationships, we first tidyed the data. 
+
+
+## Import Data
+
+Import data from github hosted .csv and glimpse what we are working with. 
+```{r load-in-data}
+url <- "https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Project2/census_top10_states_2022_untidy.csv"
+df_raw <- read.csv(url)
+head(df_raw)
+```
+
+## Tidy Data
+The data needs to be formatted for analysis. I first clean up the column names using the Janitor library, covert from wide to long, extract clear years, and reorder the columns.
+```{r tidy-data}
+df_tidy <- df_raw %>%
+  # Janitor to clean up the column names
+  clean_names() %>%
+  
+  # Convert to long format
+  pivot_longer(
+    cols = starts_with(c("april", "july")),
+    names_to = "estimate_period",
+    values_to = "population"
+  ) %>%
+  
+  # Clean up the period column text and extract clean numeric years
+  mutate(
+    # Format labels cleanly (e.g., "July 1 2021" or "April 1 2020 Estimates Base")
+    estimate_period = str_replace_all(estimate_period, "_", " ") %>% str_to_title(),
+    
+    # Optional: extract explicit numeric year into a separate column
+    year = as.numeric(str_extract(estimate_period, "\\d{4}"))
+  ) %>%
+  
+  # Reorder columns logically
+  select(rank, geographic_area, estimate_period, year, population)
+
+head(df_tidy)
+```
+
+## Analysis
+
+```{r pop-over-time-plot}
+# Reorder data frame so it is in descending order by 2020 population
+df_plot <- df_tidy %>%
+  mutate(
+    # Reorder factor levels descending by pop_2020
+    pop_2020 = population[year == 2020][match(geographic_area, geographic_area[year == 2020])],
+    geographic_area = fct_reorder(geographic_area, pop_2020, .desc = TRUE)
+  )
+
+# Make the plot
+ggplot(df_plot, aes(x = year, y = population / 1e6, color = geographic_area, group = geographic_area)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 2.5) +
+  scale_x_continuous(breaks = c(2020, 2021, 2022)) +
+  labs(
+    title = "U.S. State Populations (2020–2022)",
+    x = "Year",
+    y = "Population (Millions)",
+    color = "State"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    legend.position = "right"
+  )
+```
+
+To calculate the percent changes, first we make a new data frame with just the start and ending years. Then we can calculate absolute change, percent change, and add a new column for gained/lost population status.
+```{r pop-over-time-table}
+# Summary dataframe with percent changes
+pop_change_summary <- df_tidy %>%
+  filter(year %in% c(2020, 2022)) %>%
+  pivot_wider(
+    id_cols = c(rank, geographic_area),
+    names_from = year,
+    names_prefix = "pop_",
+    values_from = population
+  ) %>%
+  mutate(
+    abs_change = pop_2022 - pop_2020,
+    pct_change = (pop_2022 - pop_2020) / pop_2020,
+  ) %>%
+  arrange(desc(pct_change))
+
+# 2. Pass directly into gt
+table_gt <- pop_change_summary %>%
+  gt() %>%
+  tab_header(
+    title = md("**U.S. State Population Change Summary (2020–2022)**")) %>%
+  tab_spanner(label = "Population", columns = c(pop_2020, pop_2022)) %>%
+  tab_spanner(label = "Net Change", columns = c(abs_change, pct_change)) %>%
+  cols_label(
+    rank = "Rank",
+    geographic_area = "State",
+    pop_2020 = "2020",
+    pop_2022 = "2022 Estimate",
+    abs_change = "Absolute",
+    pct_change = "Percentage"
+  ) %>%
+  fmt_number(columns = c(pop_2020, pop_2022, abs_change), decimals = 0) %>%
+  fmt_percent(columns = pct_change, decimals = 2) %>%
+  cols_align(align = "left", columns = geographic_area) %>%
+  # Conditional text
+  tab_style(
+    style = cell_text(color = "#1b5e20", weight = "bold"),
+    locations = cells_body(columns = pct_change, rows = pct_change > 0)
+  ) %>%
+  tab_style(
+    style = cell_text(color = "#b71c1c", weight = "bold"),
+    locations = cells_body(columns = pct_change, rows = pct_change < 0)
+  ) %>%
+  tab_options(
+    heading.title.font.size = px(18),
+    column_labels.font.weight = "bold",
+    table.border.top.color = "transparent",
+    table.border.bottom.color = "black"
+  )
+
+table_gt
+```
+    
+## Discussion and Next Steps
+
+- 
+

@@ -1,0 +1,186 @@
+---
+title: "Project 2: Data Tidying"
+subtitle: "Fictional Business Data"
+author: "Jocelyn Slater"
+date:   today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: flatly
+execute:
+  echo:    true
+  warning: false
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(scales)
+library(dplyr)
+library(tidyr)
+```
+
+## Introducation
+
+I created a fictional business data .csv file containing very messy data. The raw data was wide with inconsistent units and an outlier. It was not formatted for analysis, so before exploring the relationships, I first tidyed the data. I then calculated profit and found the city with the greatest earnings. 
+
+## Import Data
+
+Import data from github hosted .csv and glimpse what we are working with. 
+```{r load-in-data}
+url <- "https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Project2/5A_BusinessCostsRevenue.csv"
+df_raw <- read.csv(url)
+glimpse(df_raw)
+```
+
+## Tidy Data
+The data needs to be formatted for analysis. I first clean up the column names using the Janitor library. In order to pivot and combine columns, I need to convert everything to characters and remove the commas. There are also some months that are reported in thousands, so the units of the cost and revenue need to be standardized. Then I can covert from wide to long and fix the column names
+```{r tidy-data}
+df_tidy <- df_raw %>%
+
+  clean_names() %>%
+  
+  # Convert everything to character to prevent mismatches later
+  mutate(across(everything(), as.character)) %>%
+  
+  # Pivot all month columns 
+  pivot_longer(
+    cols = -c(location, name),
+    names_to = "measure",
+    values_to = "value"
+  ) %>%
+  
+  # Remove commas and convert to to numeric
+  mutate(
+    value = as.numeric(str_remove_all(value, ","))
+  ) %>%
+  
+  # Extract month name and cost/revenue
+  mutate(
+    month = str_extract(measure, "^[a-z]+"),
+    metric = if_else(str_detect(measure, "cost"), "cost", "revenue"),
+    
+    # Scale cost values if given in thousands
+    value = if_else(metric == "cost" & value <= 100, value * 1000, value)) %>%
+
+
+  # Pivot into separate `cost` and `revenue` columns
+  pivot_wider(
+    id_cols = c(location, name, month),
+    names_from = metric,
+    values_from = value
+  ) %>%
+  
+  # Clean up month formatting and reorder
+  mutate(
+    month = str_to_title(month),
+    month = factor(month, levels = c("Jan", "Feb", "March", "April", "May", "June"))
+  ) %>%
+  arrange(location, month)
+
+head(df_tidy)
+```
+
+## Analysis
+
+First we subtract the costs from revenue to calculate profit and summarize that in a table. This allows us to see that there is an outlier in the data. The Boston revenue for May was \$6,150,000, suggesting a typo. When that is corrected to \$61,500, the data looks much more reasonable. 
+```{r calcualte-profit}
+df_tidy <- df_tidy %>%
+  mutate(
+    profit = revenue - cost,
+    month = factor(month, levels = c("Jan", "Feb", "March", "April", "May", "June"))
+  )
+
+# Calculate summary by location
+df_summary <- df_tidy %>%
+  group_by(location) %>%
+  summarise(
+    Total_Cost = sum(cost, na.rm = TRUE),
+    Total_Revenue = sum(revenue, na.rm = TRUE),
+    Total_Profit = sum(profit, na.rm = TRUE),
+    Avg_Profit_Margin = mean(profit / revenue, na.rm = TRUE)
+  )
+
+df_summary
+```
+
+```{r fix-outlier}
+# Fix the typo
+df_tidy <- df_tidy %>%
+  mutate(revenue = if_else(location == "Boston" & month == "May", 61500, revenue))
+
+# Re-calculate profit
+df_tidy <- df_tidy %>%
+  mutate(
+    profit = revenue - cost,
+    month = factor(month, levels = c("Jan", "Feb", "March", "April", "May", "June"))
+  )
+
+# Re-calculate summary by location
+df_summary <- df_tidy %>%
+  group_by(location) %>%
+  summarise(
+    Total_Cost = sum(cost, na.rm = TRUE),
+    Total_Revenue = sum(revenue, na.rm = TRUE),
+    Total_Profit = sum(profit, na.rm = TRUE),
+    Avg_Profit_Margin = mean(profit / revenue, na.rm = TRUE)
+  )
+
+# Build Great Table
+df_summary %>%
+  gt() %>%
+  tab_header(
+    title = md("**Financial Performance by Location**"),
+    subtitle = md("*Summary of Total Cost, Revenue, and Profit*")
+  ) %>%
+  cols_label(
+    location = "Location",
+    Total_Cost = "Total Cost",
+    Total_Revenue = "Total Revenue",
+    Total_Profit = "Total Profit",
+    Avg_Profit_Margin = "Avg Profit"
+  ) %>%
+  fmt_currency(
+    columns = c(Total_Cost, Total_Revenue, Total_Profit),
+    currency = "USD",
+    decimals = 0
+  ) %>%
+  fmt_percent(
+    columns = Avg_Profit_Margin,
+    decimals = 1
+  ) %>%
+  grand_summary_rows(
+    columns = c(Total_Cost, Total_Revenue, Total_Profit),
+    fns = list(Total = ~sum(.)),
+    fmt = ~ fmt_currency(., currency = "USD", decimals = 0)
+  ) 
+
+
+
+```
+
+
+```{r plot}
+ggplot(df_tidy, aes(x = month, y = profit, color = location, group = location)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 2.5) +
+  scale_y_continuous(labels = scales::dollar) +
+  theme_minimal() +
+  labs(
+    title = "Monthly Profit by Location",
+    x = "Month",
+    y = "Profit",
+    color = "Location"
+  )
+
+```
+
+## Discussion and Next Steps
+After the Boston outlier was identified and corrected, Boston still remained the second best performer. However, Dallas just out performed Boston with a 24% profit margin compared to Boston's 21%. Both the cities owe their status to one outstanding month, rather than steady high profits. Chicago shows volitile month to month performance, while the rest of the cities earned more modestly, but also more consistently. 
+
+Next steps with this data could be to aggregating all costs/revenues to see the national performance over the 6 months.
+
+
