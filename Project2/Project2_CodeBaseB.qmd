@@ -21,6 +21,7 @@ library(ggplot2)
 library(scales)
 library(dplyr)
 library(tidyr)
+library(gt)
 ```
 
 ## Introducation
@@ -37,7 +38,7 @@ glimpse(df_raw)
 ```
 
 ## Tidy Data
-The data needs to be formatted for analysis. I first clean up the column names using the Janitor library. In order to pivot and combine columns, I need to convert everything to characters and remove the commas. There are also some months that are reported in thousands, so the units of the cost and revenue need to be standardized. Then I can covert from wide to long and fix the column names
+The data needs to be formatted for analysis. I first cleaned up the column names using the Janitor library. In order to pivot and combine columns, I needed to convert everything to characters and remove the commas. There are also some months that are reported in thousands, so the units of the cost and revenue needed to be standardized. Then I converted from wide to long and fixed the column names.
 ```{r tidy-data}
 df_tidy <- df_raw %>%
 
@@ -86,7 +87,7 @@ head(df_tidy)
 
 ## Analysis
 
-First we subtract the costs from revenue to calculate profit and summarize that in a table. This allows us to see that there is an outlier in the data. The Boston revenue for May was \$6,150,000, suggesting a typo. When that is corrected to \$61,500, the data looks much more reasonable. 
+First we subtract the costs from revenue to calculate profit and summarize that in a table. This allows us to see that there is an outlier in the data, likely a mistake. The Boston revenue for May was \$6,150,000, suggesting a typo. When that is corrected to \$61,500, the data looks much more reasonable. 
 ```{r calcualte-profit}
 df_tidy <- df_tidy %>%
   mutate(
@@ -179,7 +180,7 @@ ggplot(df_tidy, aes(x = month, y = profit, color = location, group = location)) 
 ```
 
 ## Discussion and Next Steps
-After the Boston outlier was identified and corrected, Boston still remained the second best performer. However, Dallas just out performed Boston with a 24% profit margin compared to Boston's 21%. Both the cities owe their status to one outstanding month, rather than steady high profits. Chicago shows volitile month to month performance, while the rest of the cities earned more modestly, but also more consistently. 
+After the Boston outlier was identified and corrected, Boston still remained the second best performer. However, Dallas just out performed Boston with a 24% profit margin compared to Boston's 21%. Both the cities owe their status to one outstanding month, rather than steady high profits. Chicago shows volatile month to month performance, while the rest of the cities earned more modestly, but also more consistently. 
 
 Next steps with this data could be to aggregating all costs/revenues to see the national performance over the 6 months.
 

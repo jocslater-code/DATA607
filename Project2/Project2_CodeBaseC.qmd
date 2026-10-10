@@ -36,7 +36,7 @@ head(df_raw)
 ```
 
 ## Tidy Data
-The data needs to be formatted for analysis. I first clean up the column names using the Janitor library, covert from wide to long, extract clear years, and drop rows that have all NA values. Then I pick just the geographic data (regions) that I am interested in exploring. 
+The data needs to be formatted for analysis. I first cleaned up the column names using the Janitor library, coverted from wide to long, extracted clear years, and droped rows that have all NA values. Then I picked just the geographic data (regions) that I am interested in exploring. 
 ```{r tidy-data}
 df_tidy <- df_raw %>%
   # Janitor to clean up the column names
@@ -121,7 +121,34 @@ ggplot(df_mini, aes(x = year, y = value, color = country_name)) +
   ) +
   theme_minimal()
 ```
-    
+I also want to calculate the percent change in GDP to see which region has grown the most over the time period
+```{r}
+pct_change_df <- df_mini %>%
+  arrange(country_name, year) %>%
+  group_by(country_name) %>%
+  summarize(
+    pct_change = ((last(value) - first(value)) / first(value)) * 100
+  ) %>%
+  arrange(desc(pct_change))
+
+# Great table
+pct_change_df %>%
+  gt() %>%
+  tab_header(
+    title = "GDP Percent Change by Region",
+  ) %>%
+  fmt_number(
+    columns = pct_change,
+    decimals = 0
+  ) %>%
+  cols_label(
+    country_name = "Country",
+    pct_change = "Percent Change in GDP (%)"
+  )
+
+```
 ## Discussion and Next Steps
 
-- country with largest growth
+The region with the largest percent change in GDP was East Asia & Pacific (9,173%) while the region with the smallest is Southern and Eastern Africa. 
+
+The next steps could be to expand this analysis to new regions, look at all countries, or break East Asia & Pacific down by individual countries.
