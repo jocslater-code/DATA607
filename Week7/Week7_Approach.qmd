@@ -1,0 +1,76 @@
+---
+title: "Week 7: HTML and JSON"
+author: "Jocelyn Slater"
+date:   today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: flatly
+execute:
+  echo:    true
+  warning: false
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(scales)
+library(gt)
+```
+
+
+## Task
+
+This is a warm up exercise to help you to get more familiar with the HTML and JSON file formats, and using packages to read these data formats for downstream use in R data frames.  In the next two class weeks, we’ll be loading these file formats from the web, using web scraping and web APIs.
+
+Select three books on a single subject of your choice. At least one book must have multiple authors. For each book, record the title, authors, and two to three additional attributes of your choosing (e.g., publication year, publisher, ISBN, genre, rating).
+
+Using this information, manually create two data files:
+
+An HTML file containing a table with the book data (e.g., books.html)
+
+A JSON file representing the same data (e.g., books.json)
+
+Unless you are already very comfortable with these formats, you are expected to create both files by hand to better understand their structure.
+
+Next, write R code (using packages of your choice) to:
+
+Load the HTML data into an R data frame
+
+Load the JSON data into a separate R data frame
+
+Compare the two data frames and determine whether they are identical
+
+Deliverables
+books.html
+
+books.json
+
+R code that loads and compares both data sources
+
+Package your complete solution in a Quarto (.qmd) file and publish it to rpubs.com.
+
+Note: Publishing will require making your HTML and JSON files publicly accessible on the web.
+
+## Outline
+
+-   Create html file
+-   Create json file
+-   Load html and json into R dataframes
+-   Compare file contents
+-   
+
+## Anticipated Challenges
+
+-   Unfamiliar with json and html formats
+
+## Submission Requirements
+
+-   Post all code (R, Quarto, json, and html) in a GitHub repository
+
+-   Submit the GitHub link
+
+-   RPubs publication
