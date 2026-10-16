@@ -1,0 +1,53 @@
+---
+title: "Week 7: HTML and JSON"
+author: "Jocelyn Slater"
+date:   today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: flatly
+execute:
+  echo:    true
+  warning: false
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(rvest)
+library(jsonlite)
+library(gt)
+```
+
+
+## Introduction
+I previously studied history, and have many books in my collection from that time (and my own personal interest before and after). I selected three books about World War I to be the topic of my assignment. I documented each book's title, authors, publication year, publisher, and ISBN in a hand written .json and .html file. Then, I used R to read the contents into a dataframe and compared the results.
+
+## Data Import
+Using the rvest package, I'm able to read in the html file as tables. The first table contains my book data and the second contains table attributes. For our purposes, we just need the first table, so I extract that into a data frame. 
+```{r load-html}
+html_url <- "https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Week7/book.html"
+# Read in as table
+html_tbl <- read_html(html_url) %>% html_table()
+
+# Extract first table into dataframe
+html_df <- html_tbl[[1]]
+
+print(html_df)
+```
+Using the jsonlite package, I read in the json file directly into a dataframe.
+```{r load-json}
+json_url <- "https://raw.githubusercontent.com/jocslater-code/DATA607/refs/heads/main/Week7/books.json"
+# Load json into data frame
+json_df <- fromJSON(json_url)
+
+# View the dataframe
+print(json_df)
+```
+## Analysis
+Visually comparing the data frames, we can see that the contents is essentially identical, with a few minor differences. There were some special character issues with the json file. Instead of reading Stéphane Audoin-Rouzeau's name with the properly accented é, their name is rendered "StÃ©phane". 
+
+Each format handles the multiple authors differently. The json format casts authors as a list, so that the books with multiple authors just has a list of two elements. The html format concatonates the authors together, separated by a comma. 
+
+## Next Steps
+The special character issues are due to R using my system default encoding, rather than UTF-8. This can cause an misinterpertation of multi-byte characters like é. If I wanted to resolve this, I would be explicit about the system encoding. 
