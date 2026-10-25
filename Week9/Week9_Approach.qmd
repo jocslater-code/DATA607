@@ -1,0 +1,60 @@
+---
+title: "Week 9: NY Times API"
+author: "Jocelyn Slater"
+date:   today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: flatly
+execute:
+  echo:    true
+  warning: false
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(httr)
+library(jsonlite)
+library(dplyr)
+```
+
+## Task
+
+The New York Times provides multiple public APIs via its developer portal (NYT Developer Network). To use any NYT API, you must first create an account and obtain an API key.
+
+Your task:
+
+Choose one New York Times API endpoint (e.g., Article Search, Most Popular, Books, etc.).  You should use your data analysis to ask and attempt to answer an interesting question of your choosing.  Examples:  “What are the top five best selling hard cover books?”, “Which newspaper sections have produced the most popular articles, and how has this changed compared to X years ago?”, etc.
+In R, write code to:
+Authenticate using your API key.  Never hard code an API key.  There are a number of good ways to do this.  For example: Store it in an environment variable (e.g., Sys.getenv("NYT_API_KEY")).
+Make a request to the endpoint
+Parse the JSON response
+Transform the result into a clean R data frame (tibble is fine)
+Deliverable
+
+
+
+## Outline
+
+- Data question: Which books are being featured by the NYTimes currently?
+- Get API key from NYTimes
+- Store API key in enviroment variable (NOT GIT, NOT PUBLIC, NOT HARDCODED)
+- In R:
+  - Authenticate API key
+  - make a request to the endpoint
+  - parse the JSON response 
+  - Transform into clean data frame
+
+## Anticipated Challenges
+
+-  Questions about required reproducability
+
+## Submission Requirements
+
+-   Post all code (R, Quarto, json, and html) in a GitHub repository
+- A single Quarto (.qmd) document that includes:
+  - The API you selected (endpoint + brief description)
+  - The request you made (parameters used)
+  - Code that returns a tidy data frame
+  - A short note describing any data-cleaning decisions (e.g., nested fields, missing values)
