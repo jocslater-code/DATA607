@@ -1,0 +1,68 @@
+---
+title: "Week 9: NY Times API"
+author: "Jocelyn Slater"
+date:   today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: flatly
+execute:
+  echo:    true
+  warning: false
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(httr)
+library(jsonlite)
+library(dplyr)
+```
+
+## Introduction
+
+Using the NYTimes API, I explore which books are listed as the top 10 best sellers in the middle grade hardback category. 
+
+
+## API Request
+First I make the request. This requires access to the "Books" API. My endpoint is the list of top middle grade hardcover books. I have my API key saved in my R environment file, *not* hardcoded into my quarto file or uploaded to github.
+```{r api-request}
+nyt_key <- Sys.getenv("NYT_API_KEY")
+mg_books_url <- "https://api.nytimes.com/svc/books/v3/lists/current/childrens-middle-grade-hardcover.json"
+response <- GET(mg_books_url, query = list(`api-key` = nyt_key))
+```
+
+## Convert to Data Frame
+Once we have the response to our API query, we can parse the JSON request and convert it to data frame. 
+```{r convert-to-df}
+# Parse the JSON
+json_text <- content(response, as = "text", encoding = "UTF-8")
+parsed_data <- fromJSON(json_text, flatten = TRUE)
+
+# Extract into a data frame
+mgbooks_df <- parsed_data$results$books
+
+```
+
+## Tidy Data Frame
+Finally I tidy the data frame by selecting only relevant, non-empty columns. A preview of the first 10 entries in that list is displayed:
+```{r tidy-df}
+clean_mgbooks <- mgbooks_df %>%
+  select(
+    rank,
+    title,
+    author,
+    publisher,
+    description,
+    weeks_on_list,
+    primary_isbn13,
+    age_group
+  )
+
+# Display the top 5 middle grade best sellers
+head(clean_mgbooks %>% select(rank,title, author), n=10)
+```
+
+
+
+
