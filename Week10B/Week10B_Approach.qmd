@@ -1,0 +1,90 @@
+---
+title: "Week 10B: Nobel Prize JSON Practice"
+author: "Jocelyn Slater"
+date:   today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: flatly
+execute:
+  echo:    true
+  warning: false
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(jsonlite)
+library(dplyr)
+```
+
+## Task
+
+The Nobel Prize organization provides public APIs for accessing structured Nobel Prize data.
+Using one or both of the APIs available at the Nobel Prize Developer Zone, your task is to use JSON data to investigate and answer four interesting, data-driven questions.
+
+At least one of your questions should go beyond simple counts and require joining, filtering, or comparing fields across the data (e.g., “Which country lost the most Nobel laureates—born there but awarded as a citizen of another country?”).
+
+Requirements
+Use one or both Nobel Prize APIs to retrieve data in JSON format.
+
+In R, load and transform the JSON data into tidy data frames.
+
+Formulate four questions that can be answered from the data.
+
+For each question:
+
+Describe the question
+
+Show the code used
+
+Present the answer (table, summary, or plot)
+
+Deliverables
+Submit a single Quarto (.qmd) file that includes:
+
+Your four questions
+
+All R code used to retrieve and process the data
+
+The resulting answers
+
+You may complete this assignment individually or in a small group.
+
+## Outline
+
+-   Nobel Prize API: https://api.nobelprize.org/2.1/laureates
+- Load and transform JSON data into tidy data frame
+```{r load-api-and-transform}
+# I'm doing this now so I can view the data and get a sense of what questions I am able to ask and answer
+nobel_url <- "https://api.nobelprize.org/2.1/laureates?limit=1000"
+
+# Grab JSON and trasnform into dataframe
+response <- fromJSON(nobel_url, flatten = TRUE)
+nobel_df <- response$laureates
+
+#head(nobel_df)
+dim(nobel_df)
+```
+- 4 questions:
+  - Male vs female laureates
+    - Present answer as bar chart
+    - Animate chart to show overtime? Want to learn to do this
+  - Which birth month is most popular for nobel laureates?
+    - Present answer as bar chart
+  - Which country has the highest number of nobel laureates that are born and die there?
+    - Present answer as a table, top 5. If numbers are small, also include a chart
+  - How have the birth countries changed over time? I want to get a sense of if the award has gotten more global or remained western-centric in it's history
+    - Present answer: Plot of country/continent of laureate birth and year awarded
+    - Animated map that changes over time?
+
+## Anticipated Challenges
+
+-   Want to learn how to animate my charts but never done that before, so will settle for static presentation if time does not allow
+
+## Submission Requirements
+
+- Submit a single Quarto (.qmd) file that includes:
+  - Your four questions
+  - All R code used to retrieve and process the data
+  - The resulting answers
