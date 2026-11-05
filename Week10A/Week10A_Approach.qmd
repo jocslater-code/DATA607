@@ -1,0 +1,77 @@
+---
+title: "Week 9: Sentiment Analysis"
+author: "Jocelyn Slater"
+date:   today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: flatly
+execute:
+  echo:    true
+  warning: false
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(gutenbergr)
+```
+
+## Task
+
+Assignment: Sentiment Analysis with Text Mining with R
+In Chapter 2 of Text Mining with R, the authors introduce sentiment analysis.
+Your task is to reproduce and extend that example.
+
+Step 1 — Reproduce the Base Example
+Obtain the primary example code from Chapter 2.
+
+Create a Quarto (.qmd) file that successfully runs this code.
+
+Include a proper citation to the book and the original example code.
+
+Step 2 — Extend the Analysis
+Extend the original example in two ways:
+
+Use a different text corpus of your choosing (e.g., news articles, book reviews, speeches, social media, etc.).
+
+Add at least one additional sentiment lexicon, which may come from:
+
+Another R package, or
+
+A lexicon you locate through external research.
+
+You should clearly explain how the results differ from the original example.
+
+Deliverables
+Submit links to:
+
+A Quarto (.qmd) file in your GitHub repository
+
+The rendered report on rpubs.com
+
+You may complete this assignment individually or in a small team.
+
+## Outline
+
+- Step 1
+  - Create Quarto file that runs primary code example from Chapter 2 
+    - Jane Austen Book sentiment analysis recreation
+- Step 2
+  - Choose different text (library(gutenbergr)) - Frankenstein
+  - Add one additional sentiment lexicon (NRC/AFRINN)
+  - Compare and contrast results
+    - If time, align with major plot points and or character persepectives between Dr. Frankenstein and the Creature
+  
+
+
+## Anticipated Challenges
+
+-   Selecting appropriate lexicons
+-   "Monster" and "wretch" likely have a negative connotation but those are the commonly used terms to just name the Creature
+
+## Submission Requirements
+
+-   Post all code (R, Quarto, json, and html) in a GitHub repository
+-   A single Quarto (.qmd) document 
+-   The rendered report on rpubs.com
