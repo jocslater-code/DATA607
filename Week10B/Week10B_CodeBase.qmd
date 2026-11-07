@@ -1,0 +1,299 @@
+---
+title: "Week 10B: Nobel Prize JSON Practice"
+author: "Jocelyn Slater"
+date:   today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: flatly
+execute:
+  echo:    true
+  warning: false
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(jsonlite)
+library(dplyr)
+library(httr)
+library(tidyverse)
+library(gganimate)
+library(lubridate)
+library(plotly)
+library(gifski)
+```
+
+## Introduction
+The Nobel Prize developer API provides a trove of information about laureates over the years, allowing us to answer trivial and complex questions about the awardees. In this assignment, I will ask and answer the following questions using the data:
+
+1. Which birth month is the most popular for Nobel laureates?
+2. What is the breakdown of male and female laureates over time?
+3. Which countries have the most laureates that remain for their entire life?
+4. How have laureate birth locations changed over time?
+
+
+## Import API Data
+I first load in the [Nobel Prize Developer API 2.1](https://api.nobelprize.org/2.1/laureates). Then I transform that JSON data into a tidy data frame which is convenient to analyze in R. I will use this data to answer my four research questions.
+```{r load-api-and-transform}
+nobel_url <- "https://api.nobelprize.org/2.1/laureates?limit=1000"
+
+# Grab JSON and transform into dataframe
+response <- fromJSON(nobel_url, flatten = TRUE)
+nobel_df <- response$laureates
+
+#head(nobel_df)
+#dim(nobel_df)
+```
+
+## Question 1: Which birth month is the most popular for novel laureates?
+The question of most popular birth month is answered simply by extracting birth dates, converting the birth date into a date object, and tallying those results up by month. 
+```{r birth-mont}
+# Extract birth dates, convert, and grab the month
+month_counts <- nobel_df %>%
+  filter(!is.na(birth.date)) %>% # remove the records where there is no birthdate
+  mutate(
+    # Strings to Date objects 
+    birth_date_parsed = ymd(birth.date, quiet = TRUE),
+    # Extract month label 
+    birth_month = month(birth_date_parsed, label = TRUE, abbr = FALSE)
+  ) %>%
+  filter(!is.na(birth_month)) %>%
+  count(birth_month, name = "count") %>%
+  arrange(desc(count))
+
+#print(month_counts)
+
+```
+
+```{r plot-birth-month}
+
+ggplot(month_counts, aes(x = reorder(birth_month, count), y = count, fill = count)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  geom_text(aes(label = count), hjust = -0.2, fontface = "bold") +
+  ylim(0, max(month_counts$count) * 1.15) +
+  labs(
+    title = "Most Popular Birth Months of Nobel Laureates",
+    x = "Month",
+    y = "Number of Laureates"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    panel.grid.major.y = element_blank()
+  )
+```
+The results are generally in line with the modern trend. An article from [Baby Center](https://www.babycenter.com/family/birthdays/most-common-birthday-month_41002206) claims that for 2023, the most popular birth months were August, July, October, September, June, May, January, March, November, December, April, February. 
+
+## Question 2: What is the breakdown of male and female laureates over time?
+
+Although the question of gender breakdown of Nobel laureates is rather trivial, I took this opportunity to explore animated plots. First I filter and clean the data. Then I calculate the yearly cumulative sum for men and women. The bar plot of this data is animated to show when the ratio between male and female laureates began to change. 
+
+```{r gender-break-down}
+gender_df <- nobel_df %>%
+  unnest(nobelPrizes, names_sep = "_") %>%
+  transmute(
+    gender = gender,
+    year = as.numeric(nobelPrizes_awardYear)
+  )
+
+gender_df_clean <- gender_df %>%
+  filter(gender %in% c("male", "female")) %>%
+  mutate(gender = str_to_title(gender))
+
+yearly_count <- gender_df_clean %>%
+  group_by(year, gender) %>%
+  summarise(count = n(), .groups = "drop")
+
+min_year <- min(gender_df_clean$year, na.rm = TRUE)
+max_year <- max(gender_df_clean$year, na.rm = TRUE)
+cumulative_df <- yearly_count %>%
+  complete(year = full_seq(c(min_year, max_year), 1), gender = c("Female", "Male"), fill = list(count = 0)) %>%
+  group_by(gender) %>%
+  mutate(cumulative_count = cumsum(count)) %>%
+  ungroup()
+```
+
+```{r plot-gender-history}
+# Animate bar chart
+p <- plot_ly(
+  cumulative_df,
+  x = ~gender,
+  y = ~cumulative_count,
+  color = ~gender,
+  colors = c("Female" = "#E74C3C", "Male" = "#3498DB"),
+  frame = ~year,
+  type = "bar"
+) %>%
+  layout(
+    title = "Cumulative Nobel Laureates by Gender Over Time",
+    xaxis = list(title = "Gender"),
+    yaxis = list(title = "Total Laureates"),
+    barmode = "group"
+  ) %>%
+  animation_opts(
+    frame = 100,       
+    transition = 0,    
+    redraw = TRUE
+  )
+p
+```
+It's obvious that men dominated the early years of the Nobel prize. It isn't until the mid 20th century that you can discern any thickness to the female bar plot. Although more recent years have seen more diversity, the prize still heavily favors men and the early years of the award ensure a wildly unbalanced graph. 
+
+
+## Question 3: Which countries have the most laureates that remain for their entire life?
+To answer this question, I needed to filter for birth country and death country, and then subselect the laureates for whom those are the same country. After tallying these up, we can see which country has the fewest expat laureates. 
+
+```{r country-life-cyle}
+lifecycle_countries <- nobel_df %>%
+  # Select and clean birth and death country columns
+  select(
+    name = knownName.en,
+    birth_country = birth.place.countryNow.en,
+    death_country = death.place.countryNow.en
+  ) 
+
+# Remove cases where birth country or death country is NA
+# Then filter for laureates who died in the same country they were born in
+whole_life_countries <- lifecycle_countries %>%
+  filter(!is.na(birth_country) & !is.na(death_country)) %>%
+  filter(birth_country == death_country)
+
+# Summarize and rank top countries
+country_counts <- whole_life_countries %>%
+  count(birth_country, name = "laureates_count") %>%
+  arrange(desc(laureates_count))
+
+# Print the top 10 countries
+# print(country_counts)
+
+```
+
+```{r whole-life-country-chart}
+ggplot(head(country_counts, 10), aes(x = reorder(birth_country, laureates_count), y = laureates_count, fill = laureates_count)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  geom_text(aes(label = laureates_count), hjust = -0.2, fontface = "bold") +
+  ylim(0, max(country_counts$laureates_count) * 1.15) +
+  labs(
+    title = "Top Countries Where Laureates Spent Entire Lives",
+    subtitle = "Laureates born and deceased in the same country",
+    x = "Country",
+    y = "Number of Laureates",
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    panel.grid.major.y = element_blank()
+  )
+```
+  
+The US, UK, Germany, France, and Sweden dominate this list which is unsurpising given that those are very high frequency countries for the awards. 
+## Question 4: How have laureate birth locations changed over time?
+```{r birth-continent}
+
+birth_continent <- nobel_df %>%
+  unnest(nobelPrizes, names_sep = "_") %>%
+  transmute(
+    country = birth.place.countryNow.en,
+    continent = birth.place.continent.en,
+    year = as.numeric(nobelPrizes_awardYear)
+  )
+birth_continent_clean <- birth_continent %>%
+  filter(!is.na(continent))
+
+min_year <- min(birth_continent_clean$year, na.rm = TRUE)
+max_year <- max(birth_continent_clean$year, na.rm = TRUE)
+all_continents <- sort(unique(birth_continent_clean$continent))
+
+cum_cont_df <- birth_continent_clean %>%
+  group_by(year, continent) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  complete(year = full_seq(c(min_year, max_year), 1), continent = all_continents, fill = list(count = 0)) %>%
+  group_by(continent) %>%
+  mutate(cumulative_count = cumsum(count)) %>%
+  ungroup()
+
+# 4. Set continent as a factor with a fixed order (Alphabetical or Custom)
+cum_cont_df <- cum_cont_df %>%
+  mutate(continent = factor(continent, levels = all_continents))
+
+```
+
+```{r plot-birth-continents}
+plot_ly(
+  data = cum_cont_df,
+  x = ~continent,
+  y = ~cumulative_count,
+  color = ~continent,
+  type = "bar",
+  frame = ~year,
+  text = ~cumulative_count,
+  textposition = "outside"
+) %>%
+  layout(
+    title = list(text = "<b>Cumulative Nobel Laureates by Birth Continent</b>", x = 0.5),
+    xaxis = list(
+      title = "<b>Birth Continent</b>",
+      categoryorder = "array",
+      categoryarray = all_continents  # Locks x-axis ordering completely
+    ),
+    yaxis = list(title = "<b>Total Cumulative Laureates</b>", range = c(0, max(cumulative_df$cumulative_count) * 1.15)),
+    showlegend = FALSE
+  ) %>%
+  animation_opts(frame = 400, transition = 300, redraw = FALSE)
+```
+
+```{r animate-map}
+# Get birth country and award year
+birth_data <- nobel_df %>%
+  unnest(nobelPrizes, names_sep = "_") %>%
+  transmute(
+    country = birth.place.countryNow.en,
+    year = as.numeric(nobelPrizes_awardYear)
+  ) %>%
+  filter(!is.na(country))
+
+# Aggregate annual counts per birth country
+yearly_counts <- birth_data %>%
+  group_by(year, country) %>%
+  summarise(laureates_that_year = n(), .groups = "drop")
+
+max_laureates <- max(yearly_counts$laureates_that_year, na.rm = TRUE)
+
+# Animate with plotly map
+fig <- plot_geo(yearly_counts, frame = ~year) %>%
+  add_trace(
+    z = ~laureates_that_year,
+    locations = ~country,
+    locationmode = "country names",
+    color = ~laureates_that_year,
+    colors = "plasma",
+    zmin = 1,             
+    zmax = max_laureates,
+    text = ~paste("<b>", country, "</b><br>Laureates Born Here in ", year, ": ", laureates_that_year),
+    hoverinfo = "text"
+  ) %>%
+  layout(
+    title = list(text = "<b>Nobel Laureates Born per Country by Award Year</b>", x = 0.5),
+    geo = list(
+      showframe = FALSE,
+      showcoastlines = TRUE,
+      projection = list(type = 'natural earth')
+    )
+  ) %>%
+  animation_opts(
+    frame = 600,         # Milliseconds per year
+    transition = 300,    # Smooth transition duration
+    redraw = TRUE        # Required for geo map updates across frames
+  ) %>%
+  animation_slider(
+    currentvalue = list(prefix = "Award Year: ", font = list(color = "darkred"))
+  )
+
+# Display interactive plot
+fig
+```
