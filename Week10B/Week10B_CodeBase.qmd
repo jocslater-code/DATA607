@@ -25,7 +25,7 @@ library(gifski)
 ```
 
 ## Introduction
-The Nobel Prize developer API provides a trove of information about laureates over the years, allowing us to answer trivial and complex questions about the awardees. In this assignment, I will ask and answer the following questions using the data:
+The Nobel Prize developer API provides a trove of information about laureates over the years, allowing us to answer trivial and complex questions about the awardees. In this assignment, I will ask and answer the following questions using the data provided:
 
 1. Which birth month is the most popular for Nobel laureates?
 2. What is the breakdown of male and female laureates over time?
@@ -67,7 +67,7 @@ month_counts <- nobel_df %>%
 ```
 
 ```{r plot-birth-month}
-
+# Bar chart of birthdays by month
 ggplot(month_counts, aes(x = reorder(birth_month, count), y = count, fill = count)) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
@@ -89,7 +89,7 @@ The results are generally in line with the modern trend. An article from [Baby C
 
 ## Question 2: What is the breakdown of male and female laureates over time?
 
-Although the question of gender breakdown of Nobel laureates is rather trivial, I took this opportunity to explore animated plots. First I filter and clean the data. Then I calculate the yearly cumulative sum for men and women. The bar plot of this data is animated to show when the ratio between male and female laureates began to change. 
+Although the question of gender breakdown of Nobel laureates is rather trivial, I took this opportunity to explore animated plots. First I filter and clean the data. Then I calculate the yearly cumulative sum for men and women. The bar plot of this data is animated to allow us to track the ratio of male and female laureates over time. 
 
 ```{r gender-break-down}
 gender_df <- nobel_df %>%
@@ -144,7 +144,7 @@ It's obvious that men dominated the early years of the Nobel prize. It isn't unt
 
 
 ## Question 3: Which countries have the most laureates that remain for their entire life?
-To answer this question, I needed to filter for birth country and death country, and then subselect the laureates for whom those are the same country. After tallying these up, we can see which country has the fewest expat laureates. 
+To answer this question, I needed to clean and filter for birth country and death country, then subselect the laureates for whom those are the same country. After tallying these up, we can see which country has the most expat laureates. 
 
 ```{r country-life-cyle}
 lifecycle_countries <- nobel_df %>%
@@ -191,25 +191,28 @@ ggplot(head(country_counts, 10), aes(x = reorder(birth_country, laureates_count)
   )
 ```
   
-The US, UK, Germany, France, and Sweden dominate this list which is unsurpising given that those are very high frequency countries for the awards. 
+The US, UK, Germany, France, and Sweden dominate this list which is unsurprising given that those are very high frequency countries for the awards in general.
+
+
 ## Question 4: How have laureate birth locations changed over time?
+Finally, I explored how birth locations have changed over time. I expected to see a trend where Europe and North America were heavily represented in the early years. After some turning point of globalization I expected to see other continents represented as well. 
 ```{r birth-continent}
 
-birth_continent <- nobel_df %>%
+birth_place <- nobel_df %>%
   unnest(nobelPrizes, names_sep = "_") %>%
   transmute(
     country = birth.place.countryNow.en,
     continent = birth.place.continent.en,
     year = as.numeric(nobelPrizes_awardYear)
   )
-birth_continent_clean <- birth_continent %>%
+birth_place_clean <- birth_place %>%
   filter(!is.na(continent))
 
-min_year <- min(birth_continent_clean$year, na.rm = TRUE)
-max_year <- max(birth_continent_clean$year, na.rm = TRUE)
-all_continents <- sort(unique(birth_continent_clean$continent))
+min_year <- min(birth_place_clean$year, na.rm = TRUE)
+max_year <- max(birth_place_clean$year, na.rm = TRUE)
+all_continents <- sort(unique(birth_place_clean$continent))
 
-cum_cont_df <- birth_continent_clean %>%
+cum_cont_df <- birth_place_clean %>%
   group_by(year, continent) %>%
   summarise(count = n(), .groups = "drop") %>%
   complete(year = full_seq(c(min_year, max_year), 1), continent = all_continents, fill = list(count = 0)) %>%
@@ -246,19 +249,11 @@ plot_ly(
   ) %>%
   animation_opts(frame = 400, transition = 300, redraw = FALSE)
 ```
+We can see the trend of birth continent year by year in the animated bar plot above. As expected, for the first 40 years, Europe is overwhelmingly represented with North America a distant second. After WWII, other continents begin slowly growing their totals. North America's award rate increases most significantly to become a less distant second place.. In the last 20 years, Asia specifically has increased it's representation. 
 
 ```{r animate-map}
-# Get birth country and award year
-birth_data <- nobel_df %>%
-  unnest(nobelPrizes, names_sep = "_") %>%
-  transmute(
-    country = birth.place.countryNow.en,
-    year = as.numeric(nobelPrizes_awardYear)
-  ) %>%
-  filter(!is.na(country))
-
 # Aggregate annual counts per birth country
-yearly_counts <- birth_data %>%
+yearly_counts <- birth_place_clean %>%
   group_by(year, country) %>%
   summarise(laureates_that_year = n(), .groups = "drop")
 
@@ -297,3 +292,5 @@ fig <- plot_geo(yearly_counts, frame = ~year) %>%
 # Display interactive plot
 fig
 ```
+
+We can also look at the birth place question in terms of birth country. In this categorization, Russia is considered Europe, not Asia. The plot color signify how many individuals were awarded the prize that year, as for some years, many individuals from the same country win. Watching the flashes of color appear and move as the years pass, we can see the same trend as with the continents. Early years heavily favor Europe, with North America slowly becoming more represented mid-century, and countries on the remaining continents seeing less action. 
