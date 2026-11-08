@@ -1,0 +1,295 @@
+---
+title: "Week 9: Sentiment Analysis"
+author: "Jocelyn Slater"
+date:   today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: flatly
+execute:
+  echo:    true
+  warning: false
+editor: visual
+---
+
+```{r load-packages, message=FALSE, echo=FALSE}
+library(gutenbergr)
+library(dplyr)
+library(stringr)
+library(tidyr)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, out.width = "100%")
+source("frankenstein_sentiment.R", local = TRUE)
+fig <- function(name) knitr::include_graphics(file.path("figures", paste0(name, ".png")))
+f1 <- function(x) sprintf("%+.1f", x)
+f2 <- function(x) sprintf("%.2f", x)
+pct <- function(x) sprintf("%.0f%%", 100 * x)
+a <- agreement
+seg <- function(lex, s) filter(segment_scores, lexicon == lex, segment == s)$mean
+sec <- function(lex, s) by_section[[lex]][by_section$section == s]
+sens <- function(pattern, lex) {
+  r <- filter(character_sensitivity, str_detect(scenario, pattern), lexicon == lex)
+  sprintf("%+.1f (95%% interval %+.1f to %+.1f)", r$diff, r$lo, r$hi)
+}
+pers <- function(lex, v) filter(perspective, lexicon == lex, view == v)
+lev <- function(m, col) levels_check[[col]][levels_check$measure == m]
+n_shared <- sum(!is.na(tp_pairs$gap))
+n_all <- nrow(tp_pairs)
+```
+
+# Introduction
+
+This assignment explores sentiment analysis through two lenses. The first is a straightforward example, taken directly from Chapter 2 of *Text Mining with R*, the authors introduce sentiment analysis. 
+
+In the second part of the assignment, I elected to extend this analyis to one of my favorite books and a seasonal re-read, Mary Shelley's *Frankenstein*. With the help of Claude, compared the sentiment analysis of AFINN and NRC lexicons. I aligned the sentiment inflection points with the plot points I am familiar with and compared the sentiment based on the chapter narrator. 
+
+
+# Chapter 2 Example
+First to build familiarity with sentiment analysis, I recreate the example covered in Chapter 2 of Text Mining with R. These are the code experts presented in the chapter, organized into code blocks.
+
+```{r chp2-sentiments-data-set}
+library(tidytext)
+# sentiments
+# get_sentiments("afinn")
+
+library(janeaustenr)
+tidy_books <- austen_books() %>%
+ group_by(book) %>%
+ mutate(linenumber = row_number(),
+ chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]",
+ ignore_case = TRUE)))) %>%
+ ungroup() %>%
+ unnest_tokens(word, text)
+
+nrcjoy <- get_sentiments("nrc") %>%
+ filter(sentiment == "joy")
+tidy_books %>%
+ filter(book == "Emma") %>%
+ inner_join(nrcjoy) %>%
+ count(word, sort = TRUE)
+
+janeaustensentiment <- tidy_books %>%
+ inner_join(get_sentiments("bing")) %>%
+ count(book, index = linenumber %/% 80, sentiment) %>%
+ spread(sentiment, n, fill = 0) %>%
+ mutate(sentiment = positive - negative)
+          
+library(ggplot2)
+ggplot(janeaustensentiment, aes(index, sentiment, fill = book)) +
+ geom_col(show.legend = FALSE) +
+ facet_wrap(~book, ncol = 2, scales = "free_x")
+```
+
+```{r chp2-comparing-dictionaries}
+# Comparing 3 Sentiment Dictionaries
+pride_prejudice <- tidy_books %>%
+ filter(book == "Pride & Prejudice")
+#pride_prejudice
+
+afinn <- pride_prejudice %>%
+ inner_join(get_sentiments("afinn")) %>%
+ group_by(index = linenumber %/% 80) %>%
+ summarise(sentiment = sum(value)) %>%
+ mutate(method = "AFINN")
+
+bing_and_nrc <- bind_rows(
+ pride_prejudice %>%
+ inner_join(get_sentiments("bing")) %>%
+ mutate(method = "Bing et al."),
+ pride_prejudice %>%
+ inner_join(get_sentiments("nrc") %>%
+ filter(sentiment %in% c("positive",
+ "negative"))) %>%
+ mutate(method = "NRC")) %>%
+ count(method, index = linenumber %/% 80, sentiment) %>%
+ spread(sentiment, n, fill = 0) %>%
+ mutate(sentiment = positive - negative)
+
+bind_rows(afinn,
+ bing_and_nrc) %>%
+ ggplot(aes(index, sentiment, fill = method)) +
+ geom_col(show.legend = FALSE) +
+ facet_wrap(~method, ncol = 1, scales = "free_y")
+
+get_sentiments("nrc") %>%
+ filter(sentiment %in% c("positive",
+ "negative")) %>%
+ count(sentiment)
+```
+
+```{r chp2-positive-and-negative-words}
+# Positive and negative words
+bing_word_counts <- tidy_books %>%
+ inner_join(get_sentiments("bing")) %>%
+ count(word, sentiment, sort = TRUE) %>%
+ ungroup()
+#bing_word_counts
+
+bing_word_counts %>%
+ group_by(sentiment) %>%
+ top_n(10) %>%
+ ungroup() %>%
+ mutate(word = reorder(word, n)) %>%
+ ggplot(aes(word, n, fill = sentiment)) +
+ geom_col(show.legend = FALSE) +
+ facet_wrap(~sentiment, scales = "free_y") +
+ labs(y = "Contribution to sentiment",
+ x = NULL) +
+ coord_flip()
+
+custom_stop_words <- bind_rows(data_frame(word = c("miss"),
+ lexicon = c("custom")),
+ stop_words)
+
+library(wordcloud)
+tidy_books %>%
+ anti_join(stop_words) %>%
+ count(word) %>%
+ with(wordcloud(word, n, max.words = 100))
+```
+
+```{r chp2-units-beyond-words}
+# Units beyond Words
+library(reshape2)
+tidy_books %>%
+ inner_join(get_sentiments("bing")) %>%
+ count(word, sentiment, sort = TRUE) %>%
+ acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+ comparison.cloud(colors = c("gray20", "gray80"),
+ max.words = 100)
+
+PandP_sentences <- data_frame(text = prideprejudice) %>%
+ unnest_tokens(sentence, text, token = "sentences")
+
+austen_chapters <- austen_books() %>%
+ group_by(book) %>%
+ unnest_tokens(chapter, text, token = "regex",
+ pattern = "Chapter|CHAPTER [\\dIVXLC]") %>%
+ ungroup()
+austen_chapters %>%
+ group_by(book) %>%
+ summarise(chapters = n())
+
+bingnegative <- get_sentiments("bing") %>%
+ filter(sentiment == "negative")
+wordcounts <- tidy_books %>%
+ group_by(book, chapter) %>%
+ summarize(words = n())
+tidy_books %>%
+ semi_join(bingnegative) %>%
+ group_by(book, chapter) %>%
+ summarize(negativewords = n()) %>%
+ left_join(wordcounts, by = c("book", "chapter")) %>%
+ mutate(ratio = negativewords/words) %>%
+ filter(chapter != 0) %>%
+ top_n(1) %>%
+ ungroup()
+
+```
+
+# Sentiment Analysis in Frankenstein
+To extend the sentiment analysis, I chose to apply the same process to one of my favorite novels, Mary Shelly's *Frankenstein*. I used claude to do the initial sentiment comparison between the AFINN and NRC dictionaries. AFINN uses a 5 point scoring system on approximately 2500 words while NRC uses a binary yes/no with a word count of ~6500. 
+
+
+
+
+
+## Method
+
+| Topic | What I did |
+|---|---|
+| Text | Project Gutenberg #84 via `gutenbergr`: `r format(a$n_words, big.mark = ",")` words in 4 letters and 24 chapters. (This is the revised 1831 text) |
+| Scoring | AFINN adds each word's score from -5 to +5. NRC counts positive words as +1 and negative words as -1. Both are reported as net sentiment per 1,000 words. |
+| Excluded words | Character names and labels (`r paste(setdiff(CHARACTER_LABELS, "daemon"), collapse = ", ")`) are not scored. |
+| Sentiment curve | I used a Gaussian smoother with an SD of `r BANDWIDTH` words, which spans roughly one chapter. |
+| Turning points | Peaks and troughs on the curve. I use these for "inflection points", in the story and add extra plot context to frame the sentiment changes. |
+| Character focus | Primarily by narrator: Walton (letters and closing), Victor (Ch 1-10 and Ch 17-24), and the Creature (Ch 11-16). These are very rough distinctions, as there is some nesting of narrators. |
+
+When plotted, local extrema in the smoothed sentiment curve are called "wiggles". However, to determine if these wiggles are true inflection points and not just due to random chance, the code performs a shuffle. We take the paragraphs in the book and shuffle them so that the appear in a random order. From this shuffled version, we record the maxima and minima. This process is repeated 200 times. If the wiggle is not distinct from the shuffled maxima and minima 95% of the time, then the wiggle is not a true inflection point and is instead due to random fluctuation of happy and sad paragraphs. 
+
+
+## Results - Sentiment over time
+
+### AFINN
+
+```{r}
+fig("fig1_afinn_arc")
+```
+
+### NRC
+
+```{r}
+fig("fig2_nrc_arc")
+```
+
+## Comparing AFINN and NRC
+
+```{r}
+fig("fig3_lexicon_overlay")
+```
+
+
+### Where they agree
+
+- **Overall shape:** the smoothed curves correlate at r = `r f2(a$curve_pearson)`. The chapter rank correlation is `r f2(a$chap_spearman)`.
+- **Shared turning points:** these are the childhood high, Justine's trial, the De Lacey and Safie high, the Chapter 16 low, the travels with Clerval, and the destruction of the mate.
+- **The Chapter 16 low falls in neighboring beats:** NRC's point lands on the Creature being shot and AFINN's on William's murder. They are `r tp_pairs$gap[which(tp_pairs$afinn_beat == "Creature kills William; demands a mate")]` words apart, so this is one downturn rather than a real disagreement.
+
+```{r}
+fig("fig4_chapter_scatter")
+```
+
+### Where they differ
+
+```{r}
+tibble(
+  Category = c("Scale", "Number of words scored", "Share of all words scored"),
+  AFINN = c("-5 to +5", format(vocab$types_afinn, big.mark = ","), pct(a$coverage_afinn)),
+  NRC = c("+1 / -1, plus 8 emotions", format(vocab$types_nrc, big.mark = ","), pct(a$coverage_nrc))
+) |> knitr::kable()
+```
+
+## Changing tone with narrator
+
+```{r}
+fig("fig5_narrators")
+```
+
+
+### NRC emotions
+
+```{r}
+fig("fig6_emotions_narrator")
+```
+Victor's narration leans toward the negative emotions and the Creature's toward joy. Only NRC tags emotions, so we can make no comparison to AFINN here.
+
+## Limitations
+
+- **Word counting misses context.** Lexicons can't see irony, the speaker's stance, or most negation. About `r pct(a$negated_afinn)` of AFINN's and `r pct(a$negated_nrc)` of NRC's scored words come within two words after a negator such as "not" or "never", and these are not reversed.
+- **The lexicons are modern and the novel isn't.** Neither was built for 19th-century prose, so words such as "like" and "stranger" can be misread.
+- **The narrators are nested.** The Creature's story is told by Victor, who is in turn recorded by Walton. "The Creature's narration" means the passages in his voice, and quoted speech inside other narrators' sections stays with those narrators unless noted.
+- **The settings affect which points appear.** The smoothing width and threshold are judgment calls, and the shuffles carry some randomness. The robustness columns show which points depend on those choices. The turning-point threshold is a screening rule rather than a formal test.
+- **Beat boundaries are my reading of the plot.** They are listed in `output/plot_beats.csv` so you can check or change them. Narr
+
+
+## Key findings
+
+- **The two lexicons tell the same broad story.** Their chapter scores correlate at r = `r f2(a$chap_pearson)`, and they agree on whether a section is net positive or negative in `r round(a$sign_agree * a$n_sections)` of `r a$n_sections` sections. `r n_shared` of the `r n_all` distinct turning points appear in both, never more than `r max(tp_pairs$gap, na.rm = TRUE)` words apart.
+- **They differ most in baseline.** NRC reads the book as mildly positive (`r f1(a$book_nrc)` per 1,000 words) and AFINN as neutral (`r f1(a$book_afinn)`). On the words both lexicons score, the gap disappears once AFINN's intensity weights are set aside (`r f1(lev("Words both lexicons score", "AFINN_sign_only"))` vs `r f1(lev("Words both lexicons score", "NRC"))`). NRC's positive tilt comes from words only it scores.
+- **The Creature's narration scores brighter than Victor's, but that result is fragile.** Victor minus Creature is `r sens("Main", "AFINN")` with AFINN and `r sens("Main", "NRC")` with NRC, where the interval sits right at zero. With the De Lacey and Safie chapters removed, neither interval excludes zero. Much of the Creature's positive language describes the family he watches, not his own experience.
+- **Victor's language turns sharply negative around the Creature.** Sentences where Victor calls the Creature a monster, fiend or dæmon score `r f1(pers("AFINN", "Victor, on the Creature")$mean)` (AFINN) and `r f1(pers("NRC", "Victor, on the Creature")$mean)` (NRC), against `r f1(pers("AFINN", "Victor, on everything else")$mean)` and `r f1(pers("NRC", "Victor, on everything else")$mean)` for his other sentences.
+
+
+
+## AI Disclaimer
+I created this report using the results from Anthropic's Claude. This was my original prompt: 
+
+I would like to perform some sentiment analysis on Frankenstein using the gutenberg package. I would like this in R. This should be done with two different lexicons AFINN and NRC. Then results should be compared in two plots with inflection points labeled. At the very least, I would like two plots (one for each lexicon). Thank you.
+
+## Sources
+Shelley, Mary Wollstonecraft. (1818) 1993. Frankenstein; or, The Modern Prometheus. Project Gutenberg. https://www.gutenberg.org/ebooks/84.
+
+Silge, Julia, and David Robinson. 2017. "Sentiment Analysis with Tidy Data." In *Text Mining with R: A Tidy Approach*. Sebastopol, CA: O'Reilly Media. [https://www.tidytextmining.com/sentiment](https://www.tidytextmining.com/sentiment).
