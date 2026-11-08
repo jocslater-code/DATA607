@@ -429,7 +429,7 @@ plot_arc <- function(lex) {
          title = str_c(lex, " sentiment across Frankenstein"),
          subtitle = str_c(
            if (lex == "AFINN") "Word scores from -5 to +5" else "Positive words minus negative words",
-           ". Labeled points stand out from the wiggle seen when the paragraphs are shuffled."),
+           ". Labeled points are inflection points."),
          caption = "Gaussian smoother, SD 750 words. Character names and labels are excluded from scoring.") +
     theme_arc() +
     theme(panel.grid.major.y = element_line(colour = GRIDLINE, linewidth = 0.3),
@@ -487,7 +487,7 @@ fig_narrator <- ggplot(segment_plot, aes(mean, segment, colour = narrator)) +
   facet_wrap(~ lexicon, scales = "free_x") +
   scale_x_continuous(expand = expansion(mult = 0.06)) +
   scale_colour_manual(values = NARR_COL, name = "Narrator") +
-  labs(x = "Net sentiment per 1,000 words (dot: estimate; line: 95% paragraph bootstrap interval)", y = NULL,
+  labs(x = "Net sentiment per 1,000 words", y = NULL,
        title = "Sentiment by narrator, in the order the book tells it",
        subtitle = "The two panels use different scales because the lexicons score differently.") +
   theme_arc() + theme(panel.grid.major.y = element_blank(), panel.spacing.x = unit(2.5, "lines"))

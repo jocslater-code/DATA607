@@ -42,9 +42,9 @@ n_all <- nrow(tp_pairs)
 
 # Introduction
 
-This assignment explores sentiment analysis through two lenses. The first is a straightforward example, taken directly from Chapter 2 of *Text Mining with R*, the authors introduce sentiment analysis. 
+This assignment explores sentiment analysis through two lenses. The first is a straightforward example, taken directly from Chapter 2 of *Text Mining with R*, where the authors introduce sentiment analysis. 
 
-In the second part of the assignment, I elected to extend this analyis to one of my favorite books and a seasonal re-read, Mary Shelley's *Frankenstein*. With the help of Claude, compared the sentiment analysis of AFINN and NRC lexicons. I aligned the sentiment inflection points with the plot points I am familiar with and compared the sentiment based on the chapter narrator. 
+In the second part of the assignment, I elected to extend the analyis to one of my favorite books and a seasonal re-read, Mary Shelley's *Frankenstein*. With the help of Claude, I compared the sentiment analysis of the novel using both the AFINN and NRC lexicons. I aligned the sentiment inflection points with the plot points I am familiar with. I also compared the sentiment based on the chapter narrator for the two lexicons. 
 
 
 # Chapter 2 Example
@@ -191,10 +191,14 @@ tidy_books %>%
 ```
 
 # Sentiment Analysis in Frankenstein
-To extend the sentiment analysis, I chose to apply the same process to one of my favorite novels, Mary Shelly's *Frankenstein*. I used claude to do the initial sentiment comparison between the AFINN and NRC dictionaries. AFINN uses a 5 point scoring system on approximately 2500 words while NRC uses a binary yes/no with a word count of ~6500. 
+To extend the sentiment analysis, I chose to apply the same process to one of my favorite novels, Mary Shelly's *Frankenstein*. I used Claude to do the initial sentiment comparison between the AFINN and NRC dictionaries (see [AI Disclaimer](#AI_Disclaimer)). AFINN uses a 5 point scoring system on approximately 2500 words while NRC uses a binary yes/no with a word count of approximately 6500. 
 
+## A very short summary of Frankenstein
+My analysis will be more meaningful if you are familiar with the novel, which is very different from the popular modern retellings of Frankenstein. 
 
-
+<div style="margin-left: 40px;">
+The story is framed as Robert Walton writes letters to his sister describing the tale that a man rescued from the arctic relayed to him. That man was the scientist Victor Frankenstein. Victor tells of his happy childhood with his family and friend Elizabeth. He then describes how he built and animated a Creature from dead body parts. Horrified by his creation, he abandoned it. The Creature is intelligent. The Creature learned from the DeLacey family as they tutored a foreign visitor/family member, Safie. He befriended the blind father only to be rejected by the rest of the family upon discovery. Shunned by society and desperate for affection, it turned vengeful after Victor refused to create a companion. Victor's adopted sister Justine is convicted and executed for the murder of their brother, William - a murder Victor is sure that the Creature committed. The Creature murders Victor's best friend Henry Clerval and his bride Elizabeth on their wedding night. Consumed by guilt and grief, Victor chases the Creature into the arctic on dog sled where he meets with Walton's ship. Victor dies shortly after telling his story to Walton. The Creature mourns Victor and sets out into the arctic alone, intending to die there. 
+</div>
 
 
 ## Method
@@ -205,10 +209,10 @@ To extend the sentiment analysis, I chose to apply the same process to one of my
 | Scoring | AFINN adds each word's score from -5 to +5. NRC counts positive words as +1 and negative words as -1. Both are reported as net sentiment per 1,000 words. |
 | Excluded words | Character names and labels (`r paste(setdiff(CHARACTER_LABELS, "daemon"), collapse = ", ")`) are not scored. |
 | Sentiment curve | I used a Gaussian smoother with an SD of `r BANDWIDTH` words, which spans roughly one chapter. |
-| Turning points | Peaks and troughs on the curve. I use these for "inflection points", in the story and add extra plot context to frame the sentiment changes. |
-| Character focus | Primarily by narrator: Walton (letters and closing), Victor (Ch 1-10 and Ch 17-24), and the Creature (Ch 11-16). These are very rough distinctions, as there is some nesting of narrators. |
+| Turning/inflection points | Peaks and troughs on the curve. I use these for "inflection points", in the story and add extra plot context to frame the sentiment changes. |
+| Character focus | Walton (letters and closing), Victor (Ch 1-10 and Ch 17-24), and the Creature (Ch 11-16). These are very rough distinctions, as there is some nesting of narrators. |
 
-When plotted, local extrema in the smoothed sentiment curve are called "wiggles". However, to determine if these wiggles are true inflection points and not just due to random chance, the code performs a shuffle. We take the paragraphs in the book and shuffle them so that the appear in a random order. From this shuffled version, we record the maxima and minima. This process is repeated 200 times. If the wiggle is not distinct from the shuffled maxima and minima 95% of the time, then the wiggle is not a true inflection point and is instead due to random fluctuation of happy and sad paragraphs. 
+The local extrema in the smoothed sentiment curve, where sentiment shifts between positive to negative, are called "wiggles". However, to determine if these wiggles are true inflection points and not just due to random chance, the code first performs a shuffle. We take the paragraphs in the book and shuffle them so that the appear in a random order. From this shuffled version, we record the maxima and minima. This process is repeated 200 times and results are recorded. In the final, ordered version, if a wiggle is not distinct from the shuffled statistical maxima and minima 95% of the time, then the wiggle is not a true inflection point and is instead due to random fluctuation of happy and sad paragraphs. The wiggles defined as inflection points are statistically significant turning points in the sentiment. 
 
 
 ## Results - Sentiment over time
@@ -225,24 +229,28 @@ fig("fig1_afinn_arc")
 fig("fig2_nrc_arc")
 ```
 
-## Comparing AFINN and NRC
+## AFINN and NRC Overlayed
 
 ```{r}
 fig("fig3_lexicon_overlay")
 ```
 
 
-### Where they agree
-
-- **Overall shape:** the smoothed curves correlate at r = `r f2(a$curve_pearson)`. The chapter rank correlation is `r f2(a$chap_spearman)`.
-- **Shared turning points:** these are the childhood high, Justine's trial, the De Lacey and Safie high, the Chapter 16 low, the travels with Clerval, and the destruction of the mate.
-- **The Chapter 16 low falls in neighboring beats:** NRC's point lands on the Creature being shot and AFINN's on William's murder. They are `r tp_pairs$gap[which(tp_pairs$afinn_beat == "Creature kills William; demands a mate")]` words apart, so this is one downturn rather than a real disagreement.
+### Lexicon Comparison
 
 ```{r}
 fig("fig4_chapter_scatter")
 ```
 
-### Where they differ
+Shape: the smoothed curves correlate at r = `r f2(a$curve_pearson)`. The chapter rank correlation is `r f2(a$chap_spearman)`.
+
+Turning points: several shared inflection points (Chp 1/2, Chp 8, Chp 12/13, Chp 19, Chp 20)
+
+When the inflection points and chapter sentiments are plotted against each other for AFINN and NRC, we can see a strong agreement for most of the story. Overall, the two dictionaries score the narrators and chapter sentiment very similarly.
+
+### Lexicon Contrast
+
+Although the two dictionaries share most inflection points and general shapes, the shared beats are pinpointed in slightly different locations, sometimes differing by entire chapters. The NRC's inflection points also weight to the beginning of the story more heavily (identifying the creature's creation and Elizabeth's letter) while AFINN favors the end of the book (identifying Victor's return home and Victor's death). 
 
 ```{r}
 tibble(
@@ -257,37 +265,62 @@ tibble(
 ```{r}
 fig("fig5_narrators")
 ```
-
+Narrator sentiment largely follows the same trend between the two dictionaries. Major differences arise in Victor's initial chapters, his final chapters, and Walton's closing letters where NRC interprets a more positive sentiment then AFINN. The relative position of sentiment for the creature's chapters is similar between the two dictionaries. The scales for the two dictionaries are difference because the lexicon scores sentiment differently. 
 
 ### NRC emotions
 
 ```{r}
 fig("fig6_emotions_narrator")
 ```
-Victor's narration leans toward the negative emotions and the Creature's toward joy. Only NRC tags emotions, so we can make no comparison to AFINN here.
+The NRC scores on specific emotions, not just a general negative/positive sentiment. This allows us to look at the emotion score per 1000 words for Victor and the Creature. Victor's narration leans toward the negative emotions and the Creature's toward joy. Victor is at the end of his life telling his story to Walton with the framing of a failed, haunting experiment, so it follows that his emotions would be more negative. Although the Creature is reviled and longs for companionship, he also delights in learning about the world. His initial childlike wonder and attempts to find community mean his emotions are much more positive overall. 
+
+
+
+## Overall take aways
+
+**The two lexicons broadly tell the same story.** Their chapter scores correlate at r = `r f2(a$chap_pearson)`, and they agree on whether a section is net positive or negative in `r round(a$sign_agree * a$n_sections)`/`r a$n_sections` sections. `r n_shared` of the `r n_all` distinct inflection points appear in both, never more than `r max(tp_pairs$gap, na.rm = TRUE)` words apart.
+
+**They differ most in baseline sentiment.** NRC reads the book as mildly positive (`r f1(a$book_nrc)` per 1,000 words) and AFINN as neutral (`r f1(a$book_afinn)`). On the words both lexicons score, the gap disappears once AFINN's intensity weights are set aside (`r f1(lev("Words both lexicons score", "AFINN_sign_only"))` vs `r f1(lev("Words both lexicons score", "NRC"))`). NRC's positive tilt seems to come from words only it scores.
+
+**The Creature's narration scores brighter than Victor's, but that result is fragile.** Victor minus Creature is `r sens("Main", "AFINN")` with AFINN and `r sens("Main", "NRC")` with NRC, where the interval sits right at zero. With the De Lacey family chapters removed, neither interval excludes zero and therefore his narration is more neutral. Much of the Creature's positive language describes the family he watches, not his own experience.
+
+**Victor's language around the Creature contributes signifigantly to his negative sentiment rating.** For most of the novel, Victor calls the Creature a monster, fiend or dæmon. These sentences score `r f1(pers("AFINN", "Victor, on the Creature")$mean)` (AFINN) and `r f1(pers("NRC", "Victor, on the Creature")$mean)` (NRC), against `r f1(pers("AFINN", "Victor, on everything else")$mean)` and `r f1(pers("NRC", "Victor, on everything else")$mean)` for his other sentences.
 
 ## Limitations
 
-- **Word counting misses context.** Lexicons can't see irony, the speaker's stance, or most negation. About `r pct(a$negated_afinn)` of AFINN's and `r pct(a$negated_nrc)` of NRC's scored words come within two words after a negator such as "not" or "never", and these are not reversed.
-- **The lexicons are modern and the novel isn't.** Neither was built for 19th-century prose, so words such as "like" and "stranger" can be misread.
-- **The narrators are nested.** The Creature's story is told by Victor, who is in turn recorded by Walton. "The Creature's narration" means the passages in his voice, and quoted speech inside other narrators' sections stays with those narrators unless noted.
-- **The settings affect which points appear.** The smoothing width and threshold are judgment calls, and the shuffles carry some randomness. The robustness columns show which points depend on those choices. The turning-point threshold is a screening rule rather than a formal test.
-- **Beat boundaries are my reading of the plot.** They are listed in `output/plot_beats.csv` so you can check or change them. Narr
+Attempting to quantitatively analyze something that is inherently qualitative means that the list of limitations to this effort is significant. Some of the limitations are as follows:
+
+- Word counting misses context in a text. Lexicons can't see irony, the speaker's stance, or most negation. In the sentence "I am not ever happy", many lexicons will see "happy" and score the sentence positively. the About `r pct(a$negated_afinn)` of AFINN's and `r pct(a$negated_nrc)` of NRC's scored words come within two words after a negator such as "not" or "never", and these are not reversed.
+- The lexicons are modern and the novel isn't. The dated vernacular used in the novel means that intention behind some of the words and phrases is not caputured by the dictionaries sentiment score.
+- The narrators are nested, making it difficult to track the narrator. The Creature's story is told by Victor, who is then recorded by Walton. "The Creature's narration" means the passages in his voice, and quoted speech inside other narrators' sections stays with those narrators unless noted.
+- The turning-point/inflection point threshold developed by comparing to statistical wiggling is a screening rule rather than a formal test. 
+- The "beat boundaries" are my reading of the plot which is naturally going to be subjective and based on my very fallible memory and interpretation of the novel. 
+- This analysis is based on the 1818 version of the novel which is Shelley's original work published anonymously in 3 volumes. She later published an edited version in one book in 1831 which is considered darker tonally. 
+
+## Future Work
+
+If I were to continue with this analysis, I would be interested in exploring:
+
+- Comparing the results of the 1818 with 1831 version of the novel.
+- Address the issues around the sentiment of negation.
+- Develop handling for old fashioned words and phrases.
+- Tag the narrators more rigorously to mitigate the nested narrator problem.
+- Use a different binary dictionary like Bing to compare with AFINN more directly.
+- Use a model that can read context like Transformers in Python.
 
 
-## Key findings
+## AI Disclaimer {#AI_Disclaimer}
+I created this report using the results from Anthropic's Claude Opus 5.5, via Claude Code. This was my original prompt: 
 
-- **The two lexicons tell the same broad story.** Their chapter scores correlate at r = `r f2(a$chap_pearson)`, and they agree on whether a section is net positive or negative in `r round(a$sign_agree * a$n_sections)` of `r a$n_sections` sections. `r n_shared` of the `r n_all` distinct turning points appear in both, never more than `r max(tp_pairs$gap, na.rm = TRUE)` words apart.
-- **They differ most in baseline.** NRC reads the book as mildly positive (`r f1(a$book_nrc)` per 1,000 words) and AFINN as neutral (`r f1(a$book_afinn)`). On the words both lexicons score, the gap disappears once AFINN's intensity weights are set aside (`r f1(lev("Words both lexicons score", "AFINN_sign_only"))` vs `r f1(lev("Words both lexicons score", "NRC"))`). NRC's positive tilt comes from words only it scores.
-- **The Creature's narration scores brighter than Victor's, but that result is fragile.** Victor minus Creature is `r sens("Main", "AFINN")` with AFINN and `r sens("Main", "NRC")` with NRC, where the interval sits right at zero. With the De Lacey and Safie chapters removed, neither interval excludes zero. Much of the Creature's positive language describes the family he watches, not his own experience.
-- **Victor's language turns sharply negative around the Creature.** Sentences where Victor calls the Creature a monster, fiend or dæmon score `r f1(pers("AFINN", "Victor, on the Creature")$mean)` (AFINN) and `r f1(pers("NRC", "Victor, on the Creature")$mean)` (NRC), against `r f1(pers("AFINN", "Victor, on everything else")$mean)` and `r f1(pers("NRC", "Victor, on everything else")$mean)` for his other sentences.
+*I would like to perform some sentiment analysis on Frankenstein using the gutenberg package. I would like this in R. This should be done with two different lexicons AFINN and NRC. Then results should be compared in two plots with inflection points labeled. At the very least, I would like two plots (one for each lexicon). Thank you.*
 
+After my initial prompt, I asked for help placing the plot points in the right place on the plots.
 
+*Thanks. Now I need help placing my plot points on the seniment graphs. Those are located in plot_beats.csv*
 
-## AI Disclaimer
-I created this report using the results from Anthropic's Claude. This was my original prompt: 
+Finally I edited this report, eliminating some of the literary analysis that Claude included. I feel comfortable using AI for code development, but not for literary analysis, as that is still something I think requires a human touch. 
 
-I would like to perform some sentiment analysis on Frankenstein using the gutenberg package. I would like this in R. This should be done with two different lexicons AFINN and NRC. Then results should be compared in two plots with inflection points labeled. At the very least, I would like two plots (one for each lexicon). Thank you.
+*I have edited my report document, Week10A_CodeBase.qmd, removing some plots and analysis you originally generated. Please edit frankenstein_sentiment.R to remove the associated code so that we are only generating what is used in the final report. Thank you.*
 
 ## Sources
 Shelley, Mary Wollstonecraft. (1818) 1993. Frankenstein; or, The Modern Prometheus. Project Gutenberg. https://www.gutenberg.org/ebooks/84.
