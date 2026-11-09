@@ -205,7 +205,7 @@ The story is framed as Robert Walton writes letters to his sister describing the
 
 | Topic | What I did |
 |---|---|
-| Text | Project Gutenberg #84 via `gutenbergr`: `r format(a$n_words, big.mark = ",")` words in 4 letters and 24 chapters. (This is the revised 1831 text) |
+| Text | Project Gutenberg #84 via `gutenbergr`: `r format(a$n_words, big.mark = ",")` words in 4 letters and 24 chapters. (This is the original 1818 text) |
 | Scoring | AFINN adds each word's score from -5 to +5. NRC counts positive words as +1 and negative words as -1. Both are reported as net sentiment per 1,000 words. |
 | Excluded words | Character names and labels (`r paste(setdiff(CHARACTER_LABELS, "daemon"), collapse = ", ")`) are not scored. |
 | Sentiment curve | I used a Gaussian smoother with an SD of `r BANDWIDTH` words, which spans roughly one chapter. |
